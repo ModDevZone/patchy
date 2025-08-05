@@ -15,28 +15,36 @@ application {
     executableDir = "run"
 }
 
-val jdaVersion = "5.1.0"
-val logbackVersion = "1.5.8"
+val jdaVersion = "6.0.0-rc.2"
+val chewUtilsVersion = "2.1"
+val discordWebhooksVersion = "0.8.4"
+val logbackVersion = "1.5.18"
+val lombokVersion = "1.18.38"
+val fastUtilVersion = "8.5.12"
+val gsonVersion = "2.13.1"
+val curseforgeApiVersion = "2.3.3"
+val args4jVersion = "2.33"
+val botCommandsVersion = "3.0.0-beta.3"
+val configurateVersion = "4.2.0"
+
+val sqliteJdbcVersion = "3.50.3.0"
+val flywayCoreVersion = "11.10.4"
+val jdbi3CoreVersion = "3.49.5"
+val jdbi3SqlObjectVersion = "3.49.5"
+val jetbrainsAnnotationsVersion = "26.0.2"
 
 repositories {
     mavenCentral()
-    //jcenter()
-    maven {
-        name = "m2-dv8tion"
-        url = uri("https://m2.dv8tion.net/releases")
-    }
-    maven {
-        name = "jda-chewtils"
-        url = uri("https://m2.chew.pro/snapshots")
-    }
     maven {
         name = "fabric"
         url  = uri("https://maven.fabricmc.net")
     }
+
     maven {
-        name = "quilt"
-        url = uri("https://maven.quiltmc.org/repository/snapshot")
+        name = "jda-chewtils"
+        url = uri("https://m2.chew.pro/snapshots")
     }
+
     maven {
         name = "jitpack"
         url = uri("https://jitpack.io")
@@ -44,21 +52,28 @@ repositories {
 }
 
 dependencies {
+    //TODO Go through these and see what we didn't actually need...
     // ----- Core Bot Dependencies ----- //
-    implementation("net.dv8tion:JDA:$jdaVersion")
-    implementation("pw.chew:jda-chewtils:2.0-SNAPSHOT")
-    implementation("com.google.guava:guava:32.0.1-jre")
+    implementation("net.dv8tion:JDA:${jdaVersion}")
+    implementation("com.matyrobbrt:JDA-Chewtils:$chewUtilsVersion")
+    implementation("club.minnced:discord-webhooks:$discordWebhooksVersion")
+    implementation("org.projectlombok:lombok:$lombokVersion")
+    implementation("it.unimi.dsi:fastutil:$fastUtilVersion")
+    implementation("com.google.code.gson:gson:$gsonVersion")
+    implementation("io.github.matyrobbrt:curseforgeapi:$curseforgeApiVersion")
+    implementation("args4j:args4j:$args4jVersion")
+    implementation("io.github.freya022:BotCommands:$botCommandsVersion")
 
     // ----- Logging & Configuration ----- //
-    implementation("com.electronwill.night-config:toml:3.6.5")
-    implementation("ch.qos.logback:logback-classic:$logbackVersion")
+    implementation("ch.qos.logback:logback-classic:${logbackVersion}")
+    implementation("org.spongepowered:configurate-hocon:${configurateVersion}")
 
     // ----- Database & Storage ----- //
-    implementation("org.xerial:sqlite-jdbc:3.36.0.3")
-    implementation("org.flywaydb:flyway-core:8.4.1")
-    implementation("org.jdbi:jdbi3-core:3.24.1")
-    implementation("org.jdbi:jdbi3-sqlobject:3.24.1")
-    compileOnly("org.jetbrains:annotations:23.0.0")
+    implementation("org.xerial:sqlite-jdbc:$sqliteJdbcVersion")
+    implementation("org.flywaydb:flyway-core:$flywayCoreVersion")
+    implementation("org.jdbi:jdbi3-core:$jdbi3CoreVersion")
+    implementation("org.jdbi:jdbi3-sqlobject:$jdbi3SqlObjectVersion")
+    compileOnly("org.jetbrains:annotations:$jetbrainsAnnotationsVersion")
 }
 
 tasks.withType<JavaCompile> {

@@ -1,4 +1,6 @@
 ### Project ###
+bot_logs/
+config/
 
 ### Gradle ###
 .gradle

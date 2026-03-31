@@ -1,0 +1,15 @@
+{
+  token: "<your token here>",
+  features: [
+    {
+      # This config option enables or disables the NeoForge API alerts feature.
+      # When enabled, users will receive notifications about updates to NeoForge.
+      neoForgeApiAlertsEnabled: true
+    },
+    {
+      # This config option enables or disables the Fabric API alerts feature.
+      # When enabled, users will receive notifications about updates to the Fabric API.
+      fabricApiAlertsEnabled: true
+    }
+  ]
+}

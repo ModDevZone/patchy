@@ -1,9 +1,9 @@
-# yuki
+# Patchy
 
-### A basic announcement bot for sharing updates about modding libraries, tools and Minecraft, this includes the following:
+### A basic announcement bot for posting updates about modding libraries, tools and Minecraft to Discord, this includes the following:
 - Minecraft
 - Blockbench
 - NeoForge
+- Forge
 - Parchment
 - Fabric
-- Quilt

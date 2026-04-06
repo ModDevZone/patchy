@@ -1,6 +1,4 @@
 ### Project ###
-bot_logs/
-config/
 run/
 
 ### Gradle ###
@@ -8,7 +6,7 @@ run/
 build/
 
 ### IntelliJ IDEA ###
-.idea/
+.idea/*
 *.iws
 *.iml
 *.ipr
@@ -36,3 +34,7 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### EXCLUDED INTENTIONALLY ###
+!/.idea/runConfigurations/
+!/.idea/icon.png

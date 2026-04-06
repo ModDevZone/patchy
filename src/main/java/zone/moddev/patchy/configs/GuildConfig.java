@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2013 - 2026 Mod Dev Zone
+ * Copyright (c) 2016 - 2026 Mod Dev Zone
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,9 @@
 package zone.moddev.patchy.configs;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.jetbrains.annotations.Nullable;
+import zone.moddev.patchy.updatecheckers.UpdateCheckerType;
+import java.util.Optional;
 
 public class GuildConfig {
 
@@ -106,5 +109,21 @@ public class GuildConfig {
 
     public void setFabricNewsChannelId(String fabricNewsChannelId) {
         this.fabricNewsChannelId = fabricNewsChannelId;
+    }
+
+    @Nullable
+    public String getChannelId(UpdateCheckerType type) {
+        return switch (type) {
+            case MINECRAFT -> getMinecraftNewsChannelId();
+            case BLOCKBENCH -> getBlockbenchNewsChannelId();
+            case NEOFORGE -> getNeoForgeNewsChannelId();
+            case FORGE -> getForgeNewsChannelId();
+            case PARCHMENT -> getParchmentNewsChannelId();
+            case FABRIC -> getFabricNewsChannelId();
+        };
+    }
+
+    public Optional<String> getChannelIdOptional(UpdateCheckerType type) {
+        return Optional.ofNullable(getChannelId(type));
     }
 }

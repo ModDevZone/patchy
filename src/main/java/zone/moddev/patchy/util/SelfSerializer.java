@@ -22,31 +22,16 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.configs;
+package zone.moddev.patchy.util;
 
-import net.dv8tion.jda.api.events.session.ReadyEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import zone.moddev.patchy.Patchy;
-
-import java.io.IOException;
-
-public class GuildConfigListener extends ListenerAdapter {
-
-    private final ConfigManager configManager;
-
-    public GuildConfigListener(ConfigManager configManager) {
-        this.configManager = configManager;
+public class SelfSerializer implements StringSerializer<String> {
+    @Override
+    public String serialize(String value) {
+        return value;
     }
 
     @Override
-    public void onReady(ReadyEvent event) {
-        Patchy.LOGGER.info("Checking for and loading configs for all guilds...");
-        event.getJDA().getGuilds().forEach(guild -> {
-            try {
-                configManager.loadOrCreateGuildConfig(guild.getId());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
+    public String deserialize(String value) {
+        return value;
     }
 }

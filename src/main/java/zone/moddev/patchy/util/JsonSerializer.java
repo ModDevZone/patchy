@@ -22,31 +22,26 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.configs;
+package zone.moddev.patchy.util;
 
-import net.dv8tion.jda.api.events.session.ReadyEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import zone.moddev.patchy.Patchy;
+import com.google.gson.Gson;
 
-import java.io.IOException;
+public class JsonSerializer<T> implements StringSerializer<T> {
+    private final Gson gson;
+    private final Class<T> type;
 
-public class GuildConfigListener extends ListenerAdapter {
-
-    private final ConfigManager configManager;
-
-    public GuildConfigListener(ConfigManager configManager) {
-        this.configManager = configManager;
+    public JsonSerializer(Gson gson, Class<T> type) {
+        this.gson = gson;
+        this.type = type;
     }
 
     @Override
-    public void onReady(ReadyEvent event) {
-        Patchy.LOGGER.info("Checking for and loading configs for all guilds...");
-        event.getJDA().getGuilds().forEach(guild -> {
-            try {
-                configManager.loadOrCreateGuildConfig(guild.getId());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
+    public String serialize(T value) {
+        return gson.toJson(value);
+    }
+
+    @Override
+    public T deserialize(String value) {
+        return gson.fromJson(value, type);
     }
 }

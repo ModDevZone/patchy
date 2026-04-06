@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2013 - 2026 Mod Dev Zone
+ * Copyright (c) 2016 - 2026 Mod Dev Zone
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,7 @@ public class ConfigManager {
 
     private final ObjectMapper mapper;
     private final Path CONFIG_DIRECTORY = Paths.get("patchy-bot");
-    private final Path GUILD_CONFIG_DIRECTORY = CONFIG_DIRECTORY.resolve("guild_configs");
+    private final Path GUILD_CONFIG_DIRECTORY = CONFIG_DIRECTORY.resolve("guild_config");
 
     public ConfigManager() {
         // Indent output for better readability.
@@ -46,7 +46,6 @@ public class ConfigManager {
                 .enable(SerializationFeature.INDENT_OUTPUT)
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .build();
-
         try {
             // Create the directory if it does not exist.
             // This does nothing if it already exists.
@@ -58,20 +57,20 @@ public class ConfigManager {
         }
     }
 
-    public PatchyConfig loadPatchyConfig() {
+    public PatchyConfig loadPatchyConfig() throws IOException {
         Path path = CONFIG_DIRECTORY.resolve("patchy-config.json");
         if (Files.notExists(path)) {
-            // Create the default Patchy config file if one does not exist.
+            // Try to create the default Patchy config file if one does not exist.
             PatchyConfig defaultConfig = new PatchyConfig();
             mapper.writeValue(path.toFile(), defaultConfig);
             return defaultConfig;
         } else {
-            // Load the existing config file.
+            // Try to load the existing config file.
             return mapper.readValue(path.toFile(), PatchyConfig.class);
         }
     }
 
-    public GuildConfig loadOrCreateGuildConfig(String guildId) {
+    public GuildConfig loadOrCreateGuildConfig(String guildId) throws IOException {
         Path path = GUILD_CONFIG_DIRECTORY.resolve(guildId + ".json");
         if (Files.notExists(path)) {
             // Create the default Guild config file if one does not exist.
@@ -84,7 +83,7 @@ public class ConfigManager {
         }
     }
 
-    public void saveGuildConfig(String guildId, GuildConfig config) {
+    public void saveGuildConfig(String guildId, GuildConfig config) throws IOException {
         Path path = GUILD_CONFIG_DIRECTORY.resolve(guildId + ".json");
         mapper.writeValue(path.toFile(), config);
     }

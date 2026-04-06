@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2013 - 2026 Mod Dev Zone
+ * Copyright (c) 2016 - 2026 Mod Dev Zone
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,22 +28,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class PatchyConfig {
 
-    @JsonProperty("apiKey")
+    @JsonProperty
+    private String botOwnerId = "<THE_BOT_OWNERS_ID>";
+
+    @JsonProperty
     private String apiKey = "<YOUR_TOKEN_HERE>";
 
-    @JsonProperty("botOwnerId")
-    private String botOwnerId = "<THE_BOT_OWNERS_DISCORD_ID>";
-
     public PatchyConfig() {
-    }
-
-    /**
-     * Gets the api key or token for the bot to connect to Discord services.
-     *
-     * @return the Discord api key.
-     */
-    public String getApiKey() {
-        return apiKey;
     }
 
     /**
@@ -53,5 +44,14 @@ public class PatchyConfig {
      */
     public String getBotOwnerId() {
         return botOwnerId;
+    }
+
+    /**
+     * Gets the api key or token for the bot to connect to Discord services.
+     *
+     * @return the Discord api key.
+     */
+    public String getApiKey() {
+        return apiKey;
     }
 }

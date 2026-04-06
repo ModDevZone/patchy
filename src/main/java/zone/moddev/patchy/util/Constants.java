@@ -22,31 +22,44 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.configs;
+package zone.moddev.patchy.util;
 
-import net.dv8tion.jda.api.events.session.ReadyEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import zone.moddev.patchy.Patchy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
-import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.http.HttpClient;
+import java.net.http.HttpResponse;
+import java.util.function.Function;
 
-public class GuildConfigListener extends ListenerAdapter {
+public class Constants {
 
-    private final ConfigManager configManager;
+    public static final Gson GSON = new GsonBuilder().create();
+    public static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
-    public GuildConfigListener(ConfigManager configManager) {
-        this.configManager = configManager;
+    public static <T> HttpResponse.BodyHandler<T> ofGson(Gson gson, TypeToken<T> token) {
+        return responseInfo -> HttpResponse.BodySubscribers.mapping(
+            HttpResponse.BodySubscribers.ofInputStream(),
+            rethrowFunction(stream -> {
+                final InputStreamReader reader = new InputStreamReader(stream);
+                return gson.fromJson(reader, token);
+            })
+        );
     }
 
-    @Override
-    public void onReady(ReadyEvent event) {
-        Patchy.LOGGER.info("Checking for and loading configs for all guilds...");
-        event.getJDA().getGuilds().forEach(guild -> {
+    @FunctionalInterface
+    private interface ThrowingFunction<T, R> {
+        R apply(T t) throws Exception;
+    }
+
+    private static <T, R> Function<T, R> rethrowFunction(ThrowingFunction<T, R> function) {
+        return t -> {
             try {
-                configManager.loadOrCreateGuildConfig(guild.getId());
-            } catch (IOException e) {
+                return function.apply(t);
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-        });
+        };
     }
 }

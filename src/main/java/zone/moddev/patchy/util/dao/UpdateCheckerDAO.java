@@ -22,31 +22,19 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.configs;
+package zone.moddev.patchy.util.dao;
 
-import net.dv8tion.jda.api.events.session.ReadyEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import zone.moddev.patchy.Patchy;
+import org.jdbi.v3.sqlobject.customizer.Bind;
+import org.jdbi.v3.sqlobject.statement.SqlQuery;
+import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
-import java.io.IOException;
+public interface UpdateCheckerDAO {
+    @SqlUpdate("CREATE TABLE IF NOT EXISTS updatenotifiers (name TEXT PRIMARY KEY, latest TEXT)")
+    void createTable();
 
-public class GuildConfigListener extends ListenerAdapter {
+    @SqlUpdate("INSERT OR REPLACE INTO updatenotifiers (name, latest) VALUES (:name, :latest)")
+    void setLatest(@Bind("name") String name, @Bind("latest") String latest);
 
-    private final ConfigManager configManager;
-
-    public GuildConfigListener(ConfigManager configManager) {
-        this.configManager = configManager;
-    }
-
-    @Override
-    public void onReady(ReadyEvent event) {
-        Patchy.LOGGER.info("Checking for and loading configs for all guilds...");
-        event.getJDA().getGuilds().forEach(guild -> {
-            try {
-                configManager.loadOrCreateGuildConfig(guild.getId());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
+    @SqlQuery("SELECT latest FROM updatenotifiers WHERE name = :name")
+    String getLatest(@Bind("name") String name);
 }

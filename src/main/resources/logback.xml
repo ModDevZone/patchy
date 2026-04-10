@@ -3,11 +3,11 @@
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- daily rollover -->
-            <fileNamePattern>bot_logs/log.%d{yyyy-MM-dd}.txt</fileNamePattern>
+            <fileNamePattern>bot-logs/log.%d{yyyy-MM-dd}.txt</fileNamePattern>
 
-            <!-- keep 30 days' worth of history capped at 1GB total size -->
+            <!-- keep 30 days' worth of history capped at 2GB total size -->
             <maxHistory>30</maxHistory>
-            <totalSizeCap>3GB</totalSizeCap>
+            <totalSizeCap>2GB</totalSizeCap>
         </rollingPolicy>
         <encoder>
             <pattern>

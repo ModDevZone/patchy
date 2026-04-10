@@ -99,7 +99,7 @@ public final class NeoForgeUpdateChecker extends AbstractUpdateChecker<NeoForgeV
                     final String oldNeoVersion = oldVersion.byMcVersion().get(mcVersion);
 
                     final EmbedBuilder embed = new EmbedBuilder();
-                    embed.setTitle("NeoForge Update Released!");
+                    embed.setTitle("New NeoForge Update Released!");
                     embed.setColor(0xFFFF00);
                     embed.addField("Minecraft Version", mcVersion, true);
 
@@ -107,7 +107,7 @@ public final class NeoForgeUpdateChecker extends AbstractUpdateChecker<NeoForgeV
                         embed.addField("NeoForge Version", currentNeoVersion, true);
                     } else {
                         final boolean isNoLongerBeta = oldNeoVersion.endsWith("-beta") && !currentNeoVersion.endsWith("-beta");
-                        embed.addField(isNoLongerBeta ? "New Stable Release" : "Latest", "**%s** -> **%s**".formatted(oldNeoVersion, currentNeoVersion), true);
+                        embed.addField(isNoLongerBeta ? "New Stable Release" : "Latest NeoForge Version", "**%s** -> **%s**".formatted(oldNeoVersion, currentNeoVersion), true);
                     }
 
                     addChangelog(embed, oldNeoVersion, currentNeoVersion);

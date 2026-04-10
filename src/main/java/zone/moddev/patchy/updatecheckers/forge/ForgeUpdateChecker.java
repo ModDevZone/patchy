@@ -74,9 +74,9 @@ public final class ForgeUpdateChecker extends AbstractUpdateChecker<MinecraftFor
 
             final EmbedBuilder embed = new EmbedBuilder();
             embed.addField("Minecraft Version", mcVersion, true);
-            embed.setTitle("Forge version update");
+            embed.setTitle("New Forge Update Released!");
             embed.setColor(0x0000FF);
-            embed.addField("Version", version, true);
+            embed.addField("Forge Version", version, true);
             addChangelog(embed, null, version);
             return List.of(embed);
         }
@@ -97,15 +97,15 @@ public final class ForgeUpdateChecker extends AbstractUpdateChecker<MinecraftFor
                 final String oldForgeVersion = oldVersion.byMcVersion().get(mcVersion);
 
                 final EmbedBuilder embed = new EmbedBuilder();
+                embed.setTitle("New Forge Update Released!");
                 embed.addField("Minecraft Version", mcVersion, true);
-                embed.setTitle("Forge version update");
                 embed.setColor(0x0000FF);
 
                 if (oldForgeVersion == null) {
                     embed.addField("Version", currentForgeVersion, true);
                 } else {
                     boolean isNoLongerBeta = isNoLongerBeta(oldForgeVersion, currentForgeVersion);
-                    embed.addField(isNoLongerBeta ? "New stable release" : "Latest", "**%s** -> **%s**".formatted(oldForgeVersion, currentForgeVersion), true);
+                    embed.addField(isNoLongerBeta ? "New stable release" : "Latest Forge Version", "**%s** -> **%s**".formatted(oldForgeVersion, currentForgeVersion), true);
                 }
 
                 addChangelog(embed, oldForgeVersion, currentForgeVersion);

@@ -89,7 +89,7 @@ public final class MinecraftUpdateChecker extends AbstractUpdateChecker<Versions
     private VersionType getVersionType(VersionsInfo oldVersion, VersionsInfo newVersion) {
         if (!oldVersion.release().equals(newVersion.release())) {
             return VersionType.RELEASE;
-        } else if (newVersion.snapshot().contains("-release-candidate-")) {
+        } else if (newVersion.snapshot().contains("-rc")) {
             return VersionType.RELEASE_CANDIDATE;
         } else if (newVersion.snapshot().contains("-pre")) {
             return VersionType.PRE_RELEASE;
@@ -123,7 +123,11 @@ public final class MinecraftUpdateChecker extends AbstractUpdateChecker<Versions
         }
 
         public String getChangelogUrl(String version) {
-            return CHANGELOG_BASE_URL + String.format(urlPath, version.replace('.', '-'));
+            String formattedVersion = version.replace('.', '-');
+            if (this == RELEASE_CANDIDATE) {
+                formattedVersion = formattedVersion.replace("-rc", "-release-candidate");
+            }
+            return CHANGELOG_BASE_URL + String.format(urlPath, formattedVersion);
         }
     }
 }

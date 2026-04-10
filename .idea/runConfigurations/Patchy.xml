@@ -1,5 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Patchy" type="Application" factoryName="Application">
+    <option name="ALTERNATIVE_JRE_PATH" value="temurin-25" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
     <option name="MAIN_CLASS_NAME" value="zone.moddev.patchy.Patchy" />
     <module name="patchy.main" />
     <option name="VM_PARAMETERS" value="--enable-native-access=ALL-UNNAMED" />

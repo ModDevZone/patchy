@@ -1,6 +1,5 @@
 import org.jetbrains.gradle.ext.settings
 import org.jetbrains.gradle.ext.copyright
-import org.jetbrains.gradle.ext.runConfigurations
 
 plugins {
     java
@@ -16,7 +15,6 @@ application {
     applicationName = "Patchy"
     mainClass = "zone.moddev.patchy.Patchy"
     executableDir = "run"
-    applicationDefaultJvmArgs = listOf("--enable-native-access=ALL-UNNAMED")
 }
 
 tasks.shadowJar {

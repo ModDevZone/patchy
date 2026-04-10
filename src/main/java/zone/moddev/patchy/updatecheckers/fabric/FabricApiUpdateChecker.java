@@ -54,7 +54,7 @@ public final class FabricApiUpdateChecker extends AbstractUpdateChecker<String> 
     @Override
     protected @NotNull List<EmbedBuilder> getEmbeds(@Nullable final String oldVersion, final @NotNull String newVersion) {
         return List.of(new EmbedBuilder()
-            .setTitle("New Fabric API release available!")
+            .setTitle("New Fabric API Update Released!")
             .setDescription(newVersion)
             .setColor(0xDBD2B5));
     }

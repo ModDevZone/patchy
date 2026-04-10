@@ -37,8 +37,8 @@ import java.nio.file.Paths;
 public class ConfigManager {
 
     private final ObjectMapper mapper;
-    private final Path CONFIG_DIRECTORY = Paths.get("patchy-bot");
-    private final Path GUILD_CONFIG_DIRECTORY = CONFIG_DIRECTORY.resolve("guild_config");
+    private final Path CONFIG_DIRECTORY = Paths.get("patchy-bot-configs");
+    private final Path GUILD_CONFIG_DIRECTORY = CONFIG_DIRECTORY.resolve("guild-configs");
 
     public ConfigManager() {
         // Indent output for better readability.

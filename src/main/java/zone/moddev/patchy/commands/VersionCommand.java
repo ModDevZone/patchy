@@ -22,43 +22,28 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.configs;
+package zone.moddev.patchy.commands;
 
-import net.dv8tion.jda.api.events.guild.update.GuildUpdateNameEvent;
-import net.dv8tion.jda.api.events.session.ReadyEvent;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import zone.moddev.patchy.Patchy;
 
-import java.io.IOException;
-
-public class GuildConfigListener extends ListenerAdapter {
-
-    private final ConfigManager configManager;
-
-    public GuildConfigListener(ConfigManager configManager) {
-        this.configManager = configManager;
-    }
+public class VersionCommand extends ListenerAdapter {
 
     @Override
-    public void onReady(ReadyEvent event) {
-        Patchy.LOGGER.info("Checking for and loading configs for all guilds...");
-        event.getJDA().getGuilds().forEach(guild -> {
-            try {
-                configManager.loadOrCreateGuildConfig(guild);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+        if (event.getName().equals("version")) {
+            String version = Patchy.class.getPackage().getImplementationVersion();
+            EmbedBuilder embed = new EmbedBuilder()
+                    .setColor(0x2e8b57) // SeaGreen
+                    .setTitle("Patchy Information")
+                    .setDescription("Patchy! A Discord bot that can post about updates and new releases of tools and game versions in configurable channels. Find out more with the links below!")
+                    .addField("Version", version == null ? "DEVELOPMENT_BUILD" : version, true)
+                    .addField("Website", "[moddev.zone](<" + Patchy.WEBSITE_URL + ">)", true)
+                    .addField("Source Code", "[GitHub](<" + Patchy.GITHUB_REPO + ">)", true);
 
-    @Override
-    public void onGuildUpdateName(GuildUpdateNameEvent event) {
-        try {
-            GuildConfig config = configManager.loadOrCreateGuildConfig(event.getGuild());
-            config.setServerName(event.getNewName());
-            configManager.saveGuildConfig(event.getGuild().getId(), config);
-        } catch (IOException e) {
-            Patchy.LOGGER.error("Failed to update server name for guild {}", event.getGuild().getId(), e);
+            event.replyEmbeds(embed.build()).queue();
         }
     }
 }

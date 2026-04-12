@@ -24,6 +24,7 @@
 
 package zone.moddev.patchy.configs;
 
+import net.dv8tion.jda.api.entities.Guild;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.SerializationFeature;
@@ -39,47 +40,52 @@ public class ConfigManager {
     private final ObjectMapper mapper;
     private final Path CONFIG_DIRECTORY = Paths.get("patchy-bot-configs");
     private final Path GUILD_CONFIG_DIRECTORY = CONFIG_DIRECTORY.resolve("guild-configs");
+    private final PatchyConfig patchyConfig;
 
     public ConfigManager() {
-        // Indent output for better readability.
         this.mapper = JsonMapper.builder()
                 .enable(SerializationFeature.INDENT_OUTPUT)
                 .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                 .build();
         try {
-            // Create the directory if it does not exist.
-            // This does nothing if it already exists.
             Files.createDirectories(CONFIG_DIRECTORY);
             Files.createDirectories(GUILD_CONFIG_DIRECTORY);
+            this.patchyConfig = loadPatchyConfig();
         } catch (IOException exception) {
-            // If the directory could not be created, throw an error.
-            throw new RuntimeException("Could not create config directory: " + exception.getMessage());
+            throw new RuntimeException("Could not create or load config directory/files: " + exception.getMessage());
         }
     }
 
-    public PatchyConfig loadPatchyConfig() throws IOException {
+    private PatchyConfig loadPatchyConfig() throws IOException {
         Path path = CONFIG_DIRECTORY.resolve("patchy-config.json");
         if (Files.notExists(path)) {
-            // Try to create the default Patchy config file if one does not exist.
             PatchyConfig defaultConfig = new PatchyConfig();
             mapper.writeValue(path.toFile(), defaultConfig);
             return defaultConfig;
         } else {
-            // Try to load the existing config file.
             return mapper.readValue(path.toFile(), PatchyConfig.class);
         }
     }
 
-    public GuildConfig loadOrCreateGuildConfig(String guildId) throws IOException {
-        Path path = GUILD_CONFIG_DIRECTORY.resolve(guildId + ".json");
+    public PatchyConfig getPatchyConfig() {
+        return patchyConfig;
+    }
+
+    public GuildConfig loadOrCreateGuildConfig(Guild guild) throws IOException {
+        Path path = GUILD_CONFIG_DIRECTORY.resolve(guild.getId() + ".json");
         if (Files.notExists(path)) {
-            // Create the default Guild config file if one does not exist.
             GuildConfig defaultConfig = new GuildConfig();
+            defaultConfig.setServerName(guild.getName());
             mapper.writeValue(path.toFile(), defaultConfig);
             return defaultConfig;
         } else {
-            // Load the existing config file.
-            return mapper.readValue(path.toFile(), GuildConfig.class);
+            GuildConfig config = mapper.readValue(path.toFile(), GuildConfig.class);
+            // Update the server name if it has changed
+            if (!guild.getName().equals(config.getServerName())) {
+                config.setServerName(guild.getName());
+                saveGuildConfig(guild.getId(), config);
+            }
+            return config;
         }
     }
 

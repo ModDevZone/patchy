@@ -48,12 +48,12 @@ public final class NeoForgeUpdateChecker extends AbstractUpdateChecker<NeoForgeV
 
     public NeoForgeUpdateChecker() {
         super(NotifierConfiguration.<NeoForgeVersions>builder()
-            .name("neoforge")
-            .type(UpdateCheckerType.NEOFORGE)
-            .serializer(new JsonSerializer<>(Constants.GSON, NeoForgeVersions.class))
-            .versionComparator(NotifierConfiguration.notEqual())
-            .webhookInfo(new WebhookInfo("NeoForge Updates", "https://github.com/NeoForged.png"))
-            .build());
+                .name("neoforge")
+                .type(UpdateCheckerType.NEOFORGE)
+                .serializer(new JsonSerializer<>(Constants.GSON, NeoForgeVersions.class))
+                .versionComparator(NotifierConfiguration.notEqual())
+                .webhookInfo(new WebhookInfo("NeoForge Updates", "https://github.com/NeoForged.png"))
+                .build());
     }
 
     @Override
@@ -74,7 +74,7 @@ public final class NeoForgeUpdateChecker extends AbstractUpdateChecker<NeoForgeV
             final String version = versionEntry.getValue();
 
             final EmbedBuilder embed = new EmbedBuilder();
-            embed.setTitle("NeoForge Update Released!");
+            embed.setTitle("New NeoForge Update Released!");
             embed.setColor(0xFFFF00);
             embed.addField("Minecraft Version", mcVersion, true);
             embed.addField("NeoForge Version", version, true);
@@ -119,17 +119,17 @@ public final class NeoForgeUpdateChecker extends AbstractUpdateChecker<NeoForgeV
     private static void addChangelog(EmbedBuilder embedBuilder, @Nullable String neoStart, String neoEnd) {
         try {
             String changelog = getChangelogBetweenVersions(
-                neoStart, neoEnd
+                    neoStart, neoEnd
             );
             if (changelog == null || changelog.isBlank()) return;
 
             changelog = SharedVersionHelpers.replaceGitHubReferences(changelog, "NeoForged/NeoForge");
 
             embedBuilder.setDescription(SharedVersionHelpers.truncate("""
-                [Changelog](%s):
-                %s
-                """.formatted(
-                CHANGELOG_URL.formatted(neoEnd, neoEnd), changelog
+                    [Changelog](%s):
+                    %s
+                    """.formatted(
+                    CHANGELOG_URL.formatted(neoEnd, neoEnd), changelog
             ), MessageEmbed.DESCRIPTION_MAX_LENGTH));
         } catch (IOException ignored) {
         }
@@ -141,7 +141,7 @@ public final class NeoForgeUpdateChecker extends AbstractUpdateChecker<NeoForgeV
             if (content == null) return "";
             final String[] split = content.split("\n");
             final StringBuilder changelog = new StringBuilder(split[0])
-                .append('\n');
+                    .append('\n');
             for (int i = 1; i < split.length; i++) {
                 if (split[i].startsWith(" - ")) break;
                 changelog.append(split[i]).append('\n');

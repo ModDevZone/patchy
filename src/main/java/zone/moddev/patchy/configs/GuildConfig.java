@@ -27,9 +27,11 @@ package zone.moddev.patchy.configs;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jetbrains.annotations.Nullable;
 import zone.moddev.patchy.updatecheckers.UpdateCheckerType;
-import java.util.Optional;
 
 public class GuildConfig {
+
+    @JsonProperty("serverName")
+    private String serverName;
 
     @JsonProperty("botControllerRoleId")
     private String botControllerRoleId;
@@ -53,6 +55,14 @@ public class GuildConfig {
     private String fabricNewsChannelId;
 
     public GuildConfig() {
+    }
+
+    public String getServerName() {
+        return serverName;
+    }
+
+    public void setServerName(String serverName) {
+        this.serverName = serverName;
     }
 
     public String getBotControllerRoleId() {
@@ -121,9 +131,5 @@ public class GuildConfig {
             case PARCHMENT -> getParchmentNewsChannelId();
             case FABRIC -> getFabricNewsChannelId();
         };
-    }
-
-    public Optional<String> getChannelIdOptional(UpdateCheckerType type) {
-        return Optional.ofNullable(getChannelId(type));
     }
 }

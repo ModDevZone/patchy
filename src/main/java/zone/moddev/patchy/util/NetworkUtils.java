@@ -35,6 +35,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 public final class NetworkUtils {
+
     private static final Logger LOGGER = LoggerFactory.getLogger("Patchy Network Utils");
 
     private NetworkUtils() {

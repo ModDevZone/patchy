@@ -24,9 +24,9 @@
 
 package zone.moddev.patchy.updatecheckers.parchment;
 
+import org.w3c.dom.Element;
 import zone.moddev.patchy.updatecheckers.minecraft.MinecraftVersionHelper;
 import zone.moddev.patchy.util.SemVer;
-import org.w3c.dom.Element;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.net.URI;
@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class ParchmentVersionHelper {
+
     private ParchmentVersionHelper() {
         // Prevent instantiation
     }
@@ -49,30 +50,30 @@ public final class ParchmentVersionHelper {
         if (meta == null) return Map.of();
         final Map<String, String> map = new HashMap<>();
         meta.versions.stream()
-            .filter(it -> it.type().equals("release"))
-            .map(v -> SemVer.from(v.id()))
-            .filter(v -> v.compareTo(INITIAL_VERSION) >= 0)
-            .forEach(v -> {
-                try (final var is = new URI(METADATA_URL.formatted(v)).toURL().openStream()) {
-                    final var xml = parser.newDocumentBuilder().parse(is);
-                    xml.getDocumentElement().normalize();
-                    final var latestVersion = ((Element) ((Element) (xml.getElementsByTagName("metadata").item(0)))
-                        .getElementsByTagName("versioning").item(0))
-                        .getElementsByTagName("release").item(0)
-                        .getTextContent();
-                    map.put(v.toString(), latestVersion);
-                } catch (Exception ignored) {
-                }
-            });
+                .filter(it -> it.type().equals("release"))
+                .map(v -> SemVer.from(v.id()))
+                .filter(v -> v.compareTo(INITIAL_VERSION) >= 0)
+                .forEach(v -> {
+                    try (final var is = new URI(METADATA_URL.formatted(v)).toURL().openStream()) {
+                        final var xml = parser.newDocumentBuilder().parse(is);
+                        xml.getDocumentElement().normalize();
+                        final var latestVersion = ((Element) ((Element) (xml.getElementsByTagName("metadata").item(0)))
+                                .getElementsByTagName("versioning").item(0))
+                                .getElementsByTagName("release").item(0)
+                                .getTextContent();
+                        map.put(v.toString(), latestVersion);
+                    } catch (Exception ignored) {
+                    }
+                });
         return map;
     }
 
     public static ParchmentVersion newest(Map<String, String> map) {
         if (map.isEmpty()) return null;
         return map.entrySet().stream()
-            .max(Comparator.comparing(it -> dateFromParchment(it.getValue())))
-            .map(it -> new ParchmentVersion(it.getKey(), it.getValue()))
-            .orElse(null);
+                .max(Comparator.comparing(it -> dateFromParchment(it.getValue())))
+                .map(it -> new ParchmentVersion(it.getKey(), it.getValue()))
+                .orElse(null);
     }
 
     public static LocalDate dateFromParchment(String parchmentRelease) {

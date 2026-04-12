@@ -48,12 +48,12 @@ public final class ForgeUpdateChecker extends AbstractUpdateChecker<MinecraftFor
 
     public ForgeUpdateChecker() {
         super(NotifierConfiguration.<MinecraftForgeVersions>builder()
-            .name("forge")
-            .type(UpdateCheckerType.FORGE)
-            .serializer(new JsonSerializer<>(Constants.GSON, MinecraftForgeVersions.class))
-            .versionComparator(NotifierConfiguration.notEqual())
-            .webhookInfo(new WebhookInfo("Forge Updates", "https://media.discordapp.net/attachments/957353544493719632/1006125547430096966/unknown.png"))
-            .build());
+                .name("forge")
+                .type(UpdateCheckerType.FORGE)
+                .serializer(new JsonSerializer<>(Constants.GSON, MinecraftForgeVersions.class))
+                .versionComparator(NotifierConfiguration.notEqual())
+                .webhookInfo(new WebhookInfo("Forge Updates", "https://media.discordapp.net/attachments/957353544493719632/1006125547430096966/unknown.png"))
+                .build());
     }
 
     @Override
@@ -66,8 +66,8 @@ public final class ForgeUpdateChecker extends AbstractUpdateChecker<MinecraftFor
     protected List<EmbedBuilder> getEmbeds(@Nullable final MinecraftForgeVersions oldVersion, final MinecraftForgeVersions newVersion) {
         if (oldVersion == null) {
             final Map.Entry<String, String> versionEntry = newVersion.byMcVersion().entrySet().stream()
-                .max(Map.Entry.comparingByKey())
-                .orElseThrow();
+                    .max(Map.Entry.comparingByKey())
+                    .orElseThrow();
 
             final String mcVersion = versionEntry.getKey();
             final String version = versionEntry.getValue();
@@ -82,36 +82,36 @@ public final class ForgeUpdateChecker extends AbstractUpdateChecker<MinecraftFor
         }
 
         final List<Map.Entry<String, String>> changedEntries = newVersion.byMcVersion().entrySet().stream()
-            .filter(entry -> !Objects.equals(oldVersion.byMcVersion().get(entry.getKey()), entry.getValue()))
-            .sorted(Map.Entry.<String, String>comparingByKey().reversed())
-            .toList();
+                .filter(entry -> !Objects.equals(oldVersion.byMcVersion().get(entry.getKey()), entry.getValue()))
+                .sorted(Map.Entry.<String, String>comparingByKey().reversed())
+                .toList();
 
         if (changedEntries.isEmpty()) {
             return Collections.emptyList();
         }
 
         return changedEntries.stream()
-            .map(entry -> {
-                final String mcVersion = entry.getKey();
-                final String currentForgeVersion = entry.getValue();
-                final String oldForgeVersion = oldVersion.byMcVersion().get(mcVersion);
+                .map(entry -> {
+                    final String mcVersion = entry.getKey();
+                    final String currentForgeVersion = entry.getValue();
+                    final String oldForgeVersion = oldVersion.byMcVersion().get(mcVersion);
 
-                final EmbedBuilder embed = new EmbedBuilder();
-                embed.setTitle("New Forge Update Released!");
-                embed.addField("Minecraft Version", mcVersion, true);
-                embed.setColor(0x0000FF);
+                    final EmbedBuilder embed = new EmbedBuilder();
+                    embed.setTitle("New Forge Update Released!");
+                    embed.addField("Minecraft Version", mcVersion, true);
+                    embed.setColor(0x0000FF);
 
-                if (oldForgeVersion == null) {
-                    embed.addField("Version", currentForgeVersion, true);
-                } else {
-                    boolean isNoLongerBeta = isNoLongerBeta(oldForgeVersion, currentForgeVersion);
-                    embed.addField(isNoLongerBeta ? "New stable release" : "Latest Forge Version", "**%s** -> **%s**".formatted(oldForgeVersion, currentForgeVersion), true);
-                }
+                    if (oldForgeVersion == null) {
+                        embed.addField("Version", currentForgeVersion, true);
+                    } else {
+                        boolean isNoLongerBeta = isNoLongerBeta(oldForgeVersion, currentForgeVersion);
+                        embed.addField(isNoLongerBeta ? "New stable release" : "Latest Forge Version", "**%s** -> **%s**".formatted(oldForgeVersion, currentForgeVersion), true);
+                    }
 
-                addChangelog(embed, oldForgeVersion, currentForgeVersion);
-                return embed;
-            })
-            .collect(Collectors.toList());
+                    addChangelog(embed, oldForgeVersion, currentForgeVersion);
+                    return embed;
+                })
+                .collect(Collectors.toList());
     }
 
     private static boolean isNoLongerBeta(String oldForgeVersionFull, String newForgeVersionFull) {
@@ -136,17 +136,17 @@ public final class ForgeUpdateChecker extends AbstractUpdateChecker<MinecraftFor
     private static void addChangelog(EmbedBuilder embedBuilder, @Nullable String forgeStart, String forgeEnd) {
         try {
             String changelog = getChangelogBetweenVersions(
-                forgeStart, forgeEnd
+                    forgeStart, forgeEnd
             );
             if (changelog == null || changelog.isBlank()) return;
 
             changelog = SharedVersionHelpers.replaceGitHubReferences(changelog, "MinecraftForge/Forge");
 
             embedBuilder.setDescription(SharedVersionHelpers.truncate("""
-                [Changelog](%s):
-                %s
-                """.formatted(
-                CHANGELOG_URL.formatted(forgeEnd, forgeEnd), changelog
+                    [Changelog](%s):
+                    %s
+                    """.formatted(
+                    CHANGELOG_URL.formatted(forgeEnd, forgeEnd), changelog
             ), MessageEmbed.DESCRIPTION_MAX_LENGTH));
         } catch (IOException ignored) {
         }
@@ -158,7 +158,7 @@ public final class ForgeUpdateChecker extends AbstractUpdateChecker<MinecraftFor
             if (content == null) return "";
             final String[] split = content.split("\n");
             final StringBuilder changelog = new StringBuilder(split[0])
-                .append('\n');
+                    .append('\n');
             for (int i = 1; i < split.length; i++) {
                 if (split[i].startsWith(" - ")) break;
                 changelog.append(split[i]).append('\n');

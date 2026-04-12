@@ -40,11 +40,11 @@ public class Constants {
 
     public static <T> HttpResponse.BodyHandler<T> ofGson(Gson gson, TypeToken<T> token) {
         return responseInfo -> HttpResponse.BodySubscribers.mapping(
-            HttpResponse.BodySubscribers.ofInputStream(),
-            rethrowFunction(stream -> {
-                final InputStreamReader reader = new InputStreamReader(stream);
-                return gson.fromJson(reader, token);
-            })
+                HttpResponse.BodySubscribers.ofInputStream(),
+                rethrowFunction(stream -> {
+                    final InputStreamReader reader = new InputStreamReader(stream);
+                    return gson.fromJson(reader, token);
+                })
         );
     }
 

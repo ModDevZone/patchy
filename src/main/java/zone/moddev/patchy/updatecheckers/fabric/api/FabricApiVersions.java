@@ -22,36 +22,9 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.updatecheckers.forge;
-
-import zone.moddev.patchy.updatecheckers.SharedVersionHelpers;
+package zone.moddev.patchy.updatecheckers.fabric.api;
 
 import java.util.Map;
 
-public final class ForgeVersionHelper extends SharedVersionHelpers {
-
-    private ForgeVersionHelper() {
-        // Prevent instantiation
-    }
-
-    private static final String METADATA_URL = "https://maven.minecraftforge.net/releases/net/minecraftforge/forge/maven-metadata.xml";
-
-    /**
-     * Gets a map of the latest Forge version for each Minecraft version.
-     *
-     * @return A map of Minecraft versions to the latest corresponding Forge version.
-     */
-    public static Map<String, String> getForgeVersions() {
-        return getVersionsByMinecraftVersion(METADATA_URL, ForgeVersionHelper::getMinecraftVersionFromForge);
-    }
-
-    /**
-     * Get the Minecraft version from the Forge version number.
-     *
-     * @param forgeVersion The full Forge version string we need to get the Minecraft version information from.
-     * @return The Minecraft version that this Forge build was released for.
-     */
-    public static String getMinecraftVersionFromForge(String forgeVersion) {
-        return forgeVersion.split("-")[0];
-    }
+public record FabricApiVersions(Map<String, String> byMcVersion) {
 }

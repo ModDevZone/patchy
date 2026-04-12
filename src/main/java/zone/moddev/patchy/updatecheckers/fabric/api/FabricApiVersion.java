@@ -22,36 +22,28 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.updatecheckers.forge;
+package zone.moddev.patchy.updatecheckers.fabric.api;
 
-import zone.moddev.patchy.updatecheckers.SharedVersionHelpers;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.Map;
-
-public final class ForgeVersionHelper extends SharedVersionHelpers {
-
-    private ForgeVersionHelper() {
-        // Prevent instantiation
-    }
-
-    private static final String METADATA_URL = "https://maven.minecraftforge.net/releases/net/minecraftforge/forge/maven-metadata.xml";
+public record FabricApiVersion(String fullVersion, String apiPart, String mcPart) {
 
     /**
-     * Gets a map of the latest Forge version for each Minecraft version.
+     * Parses a Fabric API version string (e.g., "0.87.0+1.20.1") into its components.
      *
-     * @return A map of Minecraft versions to the latest corresponding Forge version.
+     * @param fullVersion The full version string.
+     * @return A {@link FabricApiVersion} record, or {@code null} if the string is not in the expected format.
      */
-    public static Map<String, String> getForgeVersions() {
-        return getVersionsByMinecraftVersion(METADATA_URL, ForgeVersionHelper::getMinecraftVersionFromForge);
-    }
-
-    /**
-     * Get the Minecraft version from the Forge version number.
-     *
-     * @param forgeVersion The full Forge version string we need to get the Minecraft version information from.
-     * @return The Minecraft version that this Forge build was released for.
-     */
-    public static String getMinecraftVersionFromForge(String forgeVersion) {
-        return forgeVersion.split("-")[0];
+    @Nullable
+    public static FabricApiVersion fromString(@Nullable String fullVersion) {
+        if (fullVersion == null) {
+            return null;
+        }
+        final String[] parts = fullVersion.split("\\+");
+        if (parts.length != 2) {
+            // Not a valid Fabric API version string, which must contain a "+"
+            return null;
+        }
+        return new FabricApiVersion(fullVersion, parts[0], parts[1]);
     }
 }

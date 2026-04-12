@@ -22,43 +22,24 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.configs;
+package zone.moddev.patchy.commands;
 
-import net.dv8tion.jda.api.events.guild.update.GuildUpdateNameEvent;
-import net.dv8tion.jda.api.events.session.ReadyEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import zone.moddev.patchy.Patchy;
 
-import java.io.IOException;
-
-public class GuildConfigListener extends ListenerAdapter {
-
-    private final ConfigManager configManager;
-
-    public GuildConfigListener(ConfigManager configManager) {
-        this.configManager = configManager;
-    }
+public class ShutdownCommand extends ListenerAdapter {
 
     @Override
-    public void onReady(ReadyEvent event) {
-        Patchy.LOGGER.info("Checking for and loading configs for all guilds...");
-        event.getJDA().getGuilds().forEach(guild -> {
-            try {
-                configManager.loadOrCreateGuildConfig(guild);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
+        if (event.getName().equals("shutdown")) {
+            String botOwnerId = Patchy.getInstance().getConfigManager().getPatchyConfig().getBotOwnerId();
+            if (event.getUser().getId().equals(botOwnerId)) {
+                event.reply("Shutting down...").queue();
+                Patchy.getInstance().shutdown();
+            } else {
+                event.reply("You do not have permission to do that.").setEphemeral(true).queue();
             }
-        });
-    }
-
-    @Override
-    public void onGuildUpdateName(GuildUpdateNameEvent event) {
-        try {
-            GuildConfig config = configManager.loadOrCreateGuildConfig(event.getGuild());
-            config.setServerName(event.getNewName());
-            configManager.saveGuildConfig(event.getGuild().getId(), config);
-        } catch (IOException e) {
-            Patchy.LOGGER.error("Failed to update server name for guild {}", event.getGuild().getId(), e);
         }
     }
 }

@@ -40,12 +40,12 @@ public final class ParchmentUpdateChecker extends AbstractUpdateChecker<Parchmen
 
     public ParchmentUpdateChecker() {
         super(NotifierConfiguration.<ParchmentVersion>builder()
-            .name("parchment")
-            .type(UpdateCheckerType.PARCHMENT)
-            .versionComparator(Comparator.comparing(ParchmentVersion::getDate))
-            .serializer(new JsonSerializer<>(Constants.GSON, ParchmentVersion.class))
-            .webhookInfo(new WebhookInfo("Parchment Updates", "https://media.discordapp.net/attachments/957353544493719632/1006189498960466010/unknown.png"))
-            .build());
+                .name("parchment")
+                .type(UpdateCheckerType.PARCHMENT)
+                .versionComparator(Comparator.comparing(ParchmentVersion::getDate))
+                .serializer(new JsonSerializer<>(Constants.GSON, ParchmentVersion.class))
+                .webhookInfo(new WebhookInfo("Parchment Updates", "https://github.com/parchmentmc.png"))
+                .build());
     }
 
     @Nullable
@@ -58,9 +58,9 @@ public final class ParchmentUpdateChecker extends AbstractUpdateChecker<Parchmen
     @Override
     protected List<EmbedBuilder> getEmbeds(@Nullable final ParchmentVersion oldVersion, final @NotNull ParchmentVersion newVersion) {
         return List.of(new EmbedBuilder()
-            .setColor(0xFF0000)
-            .setTitle("A new %s Parchment version is available!".formatted(newVersion.mcVersion()))
-            .addField("Version", newVersion.parchmentVersion(), false)
-            .addField("Coordinate", "`org.parchmentmc.data:parchment-%s:%s`".formatted(newVersion.mcVersion(), newVersion.parchmentVersion()), false));
+                .setColor(0xFF0000)
+                .setTitle("New %s Parchment Version is Available!".formatted(newVersion.mcVersion()))
+                .addField("Version", newVersion.parchmentVersion(), false)
+                .addField("Coordinate", "`org.parchmentmc.data:parchment-%s:%s`".formatted(newVersion.mcVersion(), newVersion.parchmentVersion()), false));
     }
 }

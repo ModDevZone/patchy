@@ -24,58 +24,38 @@
 
 package zone.moddev.patchy.updatecheckers.fabric;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import zone.moddev.patchy.updatecheckers.SharedVersionHelpers;
-import zone.moddev.patchy.util.NetworkUtils;
 import org.jetbrains.annotations.Nullable;
+import zone.moddev.patchy.updatecheckers.SharedVersionHelpers;
+import zone.moddev.patchy.updatecheckers.fabric.api.FabricApiVersion;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public final class FabricVersionHelper extends SharedVersionHelpers {
 
-    private static final String YARN_URL = "https://meta.fabricmc.net/v2/versions/yarn";
-    private static final String LOADER_URL = "https://meta.fabricmc.net/v2/versions/loader";
-    private static final String API_URL = "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml";
+    private static final String MAVEN_URL = "https://maven.fabricmc.net/net/fabricmc/";
+    private static final String FABRIC_API_URL = "fabric-api/fabric-api/maven-metadata.xml";
+    private static final String FABRIC_LOADER_URL = "fabric-loader/maven-metadata.xml";
 
-    public static String getLatestYarn(final String mcVersion) {
-        return getYarnVersions().getOrDefault(mcVersion, null);
-    }
-
-    public static Map<String, String> getYarnVersions() {
-        final String content = NetworkUtils.getUrlContent(YARN_URL);
-        if (content == null || content.isBlank()) {
-            return Collections.emptyMap();
-        }
-        final TypeToken<List<SharedVersionHelpers.SharedVersionInfo>> token = new TypeToken<>() {};
-        final List<SharedVersionHelpers.SharedVersionInfo> versions = new Gson().fromJson(content, token.getType());
-
-        final Map<String, List<SharedVersionHelpers.SharedVersionInfo>> map = versions.stream()
-            .distinct()
-            .collect(Collectors.groupingBy(it -> it.gameVersion));
-        return map.keySet()
-            .stream()
-            .collect(Collectors.toMap(Function.identity(), it -> map.get(it).get(0).version));
-    }
-
+    /**
+     * Gets the latest version of the Fabric Loader.
+     *
+     * @return The latest version, or null if it could not be resolved.
+     */
     @Nullable
-    public static String getLatestLoader() {
-        final String content = NetworkUtils.getUrlContent(LOADER_URL);
-        if (content == null || content.isBlank()) {
-            return null;
-        }
-        final TypeToken<List<SharedVersionHelpers.LoaderVersionInfo>> token = new TypeToken<>() {};
-        final List<SharedVersionHelpers.LoaderVersionInfo> versions = new Gson().fromJson(content, token.getType());
-
-        return versions.get(0).version;
+    public static String getLatestFabricLoaderVersion() {
+        return SharedVersionHelpers.getLatestFromMavenMetadata(MAVEN_URL + FABRIC_LOADER_URL);
     }
 
+    /**
+     * Gets a map of the latest Fabric API version for each Minecraft version.
+     *
+     * @return A map of Minecraft versions to the latest corresponding Fabric API version.
+     */
     @Nullable
-    public static String getLatestApi() {
-        return SharedVersionHelpers.getLatestFromMavenMetadata(API_URL);
+    public static Map<String, String> getFabricApiVersions() {
+        return getVersionsByMinecraftVersion(MAVEN_URL + FABRIC_API_URL, version -> {
+            final FabricApiVersion apiVersion = FabricApiVersion.fromString(version);
+            return apiVersion != null ? apiVersion.mcPart() : null;
+        });
     }
 }

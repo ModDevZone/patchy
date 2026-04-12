@@ -18,7 +18,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT of OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
 
@@ -42,12 +42,12 @@ public final class MinecraftUpdateChecker extends AbstractUpdateChecker<Versions
 
     public MinecraftUpdateChecker() {
         super(NotifierConfiguration.<MinecraftVersionHelper.VersionsInfo>builder()
-            .name("minecraft")
-            .type(UpdateCheckerType.MINECRAFT)
-            .versionComparator(NotifierConfiguration.notEqual())
-            .serializer(new JsonSerializer<>(Constants.GSON, VersionsInfo.class))
-            .webhookInfo(new WebhookInfo("Minecraft Updates", "https://media.discordapp.net/attachments/957353544493719632/1005934698767323156/unknown.png?width=594&height=594"))
-            .build());
+                .name("minecraft")
+                .type(UpdateCheckerType.MINECRAFT)
+                .versionComparator(NotifierConfiguration.notEqual())
+                .serializer(new JsonSerializer<>(Constants.GSON, VersionsInfo.class))
+                .webhookInfo(new WebhookInfo("Minecraft Updates", "https://www.minecraft.net/etc.clientlibs/minecraftnet/clientlibs/clientlib-site/resources/favicon.ico"))
+                .build());
     }
 
     @Override
@@ -64,9 +64,9 @@ public final class MinecraftUpdateChecker extends AbstractUpdateChecker<Versions
     protected List<EmbedBuilder> getEmbeds(@Nullable final VersionsInfo oldVersion, final @NotNull VersionsInfo newVersion) {
         if (oldVersion == null) {
             return List.of(new EmbedBuilder()
-                .setDescription("New Minecraft Version Available!")
-                .setColor(0x00FFFF)
-                .setDescription(newVersion.snapshot()));
+                    .setDescription("New Minecraft Version Available!")
+                    .setColor(0x00FFFF)
+                    .setDescription(newVersion.snapshot()));
         }
 
         VersionType versionType = getVersionType(oldVersion, newVersion);
@@ -74,8 +74,8 @@ public final class MinecraftUpdateChecker extends AbstractUpdateChecker<Versions
         String changelogUrl = versionType.getChangelogUrl(version);
 
         final EmbedBuilder embed = new EmbedBuilder()
-            .setTitle(versionType.getDisplay() + " Available!")
-            .setColor(versionType.getColor());
+                .setTitle(versionType.getDisplay() + " Available!")
+                .setColor(versionType.getColor());
 
         if (NetworkUtils.isValidUrl(changelogUrl)) {
             embed.setDescription(version + "\nChangelog: " + changelogUrl);

@@ -24,12 +24,10 @@
 
 package zone.moddev.patchy.updatecheckers;
 
-import club.minnced.discord.webhook.send.AllowedMentions;
-import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
-import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.middleman.StandardGuildMessageChannel;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Marker;
@@ -42,6 +40,7 @@ import zone.moddev.patchy.util.webhook.WebhookManager;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -49,8 +48,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class AbstractUpdateChecker<T> implements Runnable {
-    public static final String WEBHOOK_NAME = "UpdateNotifiers";
-    protected static final WebhookManager WEBHOOKS = WebhookManager.of(s -> s.trim().equals(WEBHOOK_NAME), WEBHOOK_NAME, AllowedMentions.none());
+    public static final String WEBHOOK_NAME = "UpdateCheckers";
+    protected static final WebhookManager WEBHOOKS = WebhookManager.of(s -> s.trim().equals(WEBHOOK_NAME), WEBHOOK_NAME, Collections.emptyList());
 
     protected final NotifierConfiguration<T> configuration;
     protected final Marker loggingMarker;
@@ -76,7 +75,7 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
         }
         if (!pickedUpFromDB) {
             final String oldData = Patchy.getInstance().getJdbi()
-                .withExtension(UpdateCheckerDAO.class, db -> db.getLatest(configuration.name));
+                    .withExtension(UpdateCheckerDAO.class, db -> db.getLatest(configuration.name));
             final Runnable initialQuery = () -> {
                 try {
                     final T queried = queryLatest();
@@ -117,38 +116,38 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
             }
 
             final List<GuildConfig> guildConfigs = Patchy.getJDA().getGuilds().stream()
-                .map(guild -> {
-                    try {
-                        return Patchy.getInstance().getConfigManager().loadOrCreateGuildConfig(guild.getId());
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                    .map(guild -> {
+                        try {
+                            return Patchy.getInstance().getConfigManager().loadOrCreateGuildConfig(guild);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
 
             configuration.channelGetter.apply(guildConfigs)
-                .stream()
-                .map(it -> Patchy.getJDA().getChannelById(StandardGuildMessageChannel.class, it))
-                .filter(Objects::nonNull)
-                .forEach(channel -> {
-                    for (final var embed : embeds) {
-                        embed.setTimestamp(Instant.now());
-                        if (configuration.webhookInfo == null) {
-                            channel.sendMessageEmbeds(embed.build()).queue(msg -> {
-                                if (channel.getType() == ChannelType.NEWS) {
-                                    msg.crosspost().queue();
-                                }
-                            });
-                        } else {
-                            WEBHOOKS.sendAndCrosspost(channel, new WebhookMessageBuilder()
-                                .setAvatarUrl(configuration.webhookInfo.avatarUrl())
-                                .setUsername(configuration.webhookInfo.username())
-                                .addEmbeds(WebhookEmbedBuilder.fromJDA(embed.build()).build())
-                                .build());
+                    .stream()
+                    .map(it -> Patchy.getJDA().getChannelById(StandardGuildMessageChannel.class, it))
+                    .filter(Objects::nonNull)
+                    .forEach(channel -> {
+                        for (final var embed : embeds) {
+                            embed.setTimestamp(Instant.now());
+                            if (configuration.webhookInfo == null) {
+                                channel.sendMessageEmbeds(embed.build()).queue(msg -> {
+                                    if (channel.getType() == ChannelType.NEWS) {
+                                        msg.crosspost().queue();
+                                    }
+                                });
+                            } else {
+                                WEBHOOKS.sendAndCrosspost(channel,
+                                        configuration.webhookInfo.username(),
+                                        configuration.webhookInfo.avatarUrl(),
+                                        new MessageCreateBuilder().addEmbeds(embed.build()).build()
+                                );
+                            }
                         }
-                    }
-                });
+                    });
         } else {
             Patchy.LOGGER.debug(loggingMarker, "No new version found");
         }
@@ -157,7 +156,7 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
     private void update(T latest) {
         this.latest = latest;
         Patchy.getInstance().getJdbi().useExtension(UpdateCheckerDAO.class, db -> db.setLatest(
-            configuration.name, configuration.serializer.serialize(latest)
+                configuration.name, configuration.serializer.serialize(latest)
         ));
     }
 

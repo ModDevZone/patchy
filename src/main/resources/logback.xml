@@ -24,6 +24,10 @@
             </pattern>
         </encoder>
     </appender>
+
+    <!-- Suppress HikariCP startup messages -->
+    <logger name="com.zaxxer.hikari" level="WARN" />
+
     <!--Log levels include ERROR, WARN, INFO, DEBUG, TRACE -->
     <root level="INFO">
         <appender-ref ref="CONSOLE" />

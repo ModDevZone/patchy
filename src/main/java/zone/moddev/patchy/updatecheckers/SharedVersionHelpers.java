@@ -24,22 +24,37 @@
 
 package zone.moddev.patchy.updatecheckers;
 
-import zone.moddev.patchy.Patchy;
-import zone.moddev.patchy.util.NetworkUtils;
 import org.jetbrains.annotations.Nullable;
+import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import zone.moddev.patchy.Patchy;
+import zone.moddev.patchy.util.NetworkUtils;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.AbstractMap;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class SharedVersionHelpers {
 
+    /**
+     * Gets the latest version from a maven-metadata.xml file.
+     *
+     * @param url The URL of the maven-metadata.xml file.
+     * @return The latest version, or null if it could not be resolved.
+     */
     @Nullable
     public static String getLatestFromMavenMetadata(String url) {
         String content = NetworkUtils.getUrlContent(url);
@@ -49,11 +64,11 @@ public class SharedVersionHelpers {
 
         try {
             final var doc = DocumentBuilderFactory.newInstance()
-                .newDocumentBuilder()
-                .parse(new InputSource(new StringReader(content)));
+                    .newDocumentBuilder()
+                    .parse(new InputSource(new StringReader(content)));
             final XPathExpression expr = XPathFactory.newInstance()
-                .newXPath()
-                .compile("/metadata/versioning/latest/text()");
+                    .newXPath()
+                    .compile("/metadata/versioning/latest/text()");
             return expr.evaluate(doc);
         } catch (SAXException | XPathExpressionException | ParserConfigurationException | IOException ex) {
             Patchy.LOGGER.error("Failed to resolve latest version from url '{}'", url, ex);
@@ -61,24 +76,68 @@ public class SharedVersionHelpers {
         return null;
     }
 
+    /**
+     * Gets all versions from a maven-metadata.xml file.
+     *
+     * @param url The URL of the maven-metadata.xml file.
+     * @return An array of all versions, or null if they could not be resolved.
+     */
+    @Nullable
+    public static String[] getVersionsFromMavenMetadata(String url) {
+        String content = NetworkUtils.getUrlContent(url);
+        if (content == null) {
+            return null;
+        }
+
+        try {
+            final var doc = DocumentBuilderFactory.newInstance()
+                    .newDocumentBuilder()
+                    .parse(new InputSource(new StringReader(content)));
+            final XPathExpression expr = XPathFactory.newInstance()
+                    .newXPath()
+                    .compile("/metadata/versioning/versions/version");
+            final NodeList versionsNode = (NodeList) expr.evaluate(doc, XPathConstants.NODESET);
+            final String[] versions = new String[versionsNode.getLength()];
+            for (int i = 0; i < versionsNode.getLength(); i++) {
+                versions[i] = versionsNode.item(i).getTextContent();
+            }
+            return versions;
+        } catch (SAXException | XPathExpressionException | ParserConfigurationException | IOException ex) {
+            Patchy.LOGGER.error("Failed to resolve versions from url '{}'", url, ex);
+        }
+        return null;
+    }
+
+    /**
+     * Gets a map of the latest version for each Minecraft version from a maven-metadata.xml file.
+     *
+     * @param url                The URL of the maven-metadata.xml file.
+     * @param mcVersionExtractor A function that extracts the Minecraft version from a version string.
+     * @return A map of Minecraft versions to the latest corresponding version.
+     */
+    public static Map<String, String> getVersionsByMinecraftVersion(String url, Function<String, String> mcVersionExtractor) {
+        final String[] versions = getVersionsFromMavenMetadata(url);
+        if (versions == null) {
+            return Collections.emptyMap();
+        }
+        return Arrays.stream(versions)
+                .map(v -> new AbstractMap.SimpleImmutableEntry<>(mcVersionExtractor.apply(v), v))
+                .filter(e -> e.getKey() != null)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (a, b) -> b, // Keep the last one found for a given MC version
+                        LinkedHashMap::new // Preserve insertion order
+                ));
+    }
+
     public static String replaceGitHubReferences(String changelog, String repo) {
         return changelog.replaceAll("\\(#(?<number>\\d+)\\)", "[(#$1)](https://github.com/" + repo + "/pull/$1)")
-            .replaceAll("(?m)^ - ", "- ")
-            .replaceAll("(?mi)(?<type>(?:close|fix|resolve)(?:s|d|es|ed)?) #(?<number>\\d+)", "$1 [#$2](https://github.com/" + repo + "/issues/$2)");
+                .replaceAll("(?m)^ - ", "- ")
+                .replaceAll("(?mi)(?<type>(?:close|fix|resolve)(?:s|d|es|ed)?) #(?<number>\\d+)", "$1 [#$2](https://github.com/" + repo + "/issues/$2)");
     }
 
     public static String truncate(final String str, int limit) {
         return str.length() > (limit - 3) ? str.substring(0, limit - 3) + "..." : str;
-    }
-
-    public static class SharedVersionInfo {
-        public String gameVersion;
-        public int build;
-        public String version;
-    }
-
-    public static class LoaderVersionInfo {
-        public int build;
-        public String version;
     }
 }

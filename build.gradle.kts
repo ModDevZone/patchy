@@ -13,6 +13,7 @@ group = "zone.moddev.patchy"
 
 application {
     applicationName = "Patchy"
+    version = "1.0.0"
     mainClass = "zone.moddev.patchy.Patchy"
     executableDir = "run"
 }
@@ -52,8 +53,6 @@ val fastUtilVersion = "8.5.18"
 dependencies {
     implementation("net.dv8tion:JDA:${jdaVersion}")
     implementation("org.jetbrains:annotations:${jetbrainsAnnotations}")
-    //TODO Try and remove this dependency, JDA has replaced it's features so it is discontinued and it has a few minor security flaws
-    implementation("club.minnced:discord-webhooks:0.8.4")
     implementation("tools.jackson.core:jackson-databind:${jacksonDatabindVersion}")
     implementation("com.fasterxml.jackson.core:jackson-annotations:${jacksonAnnotationsVersion}")
     implementation("io.github.cdimascio:dotenv-java:${dotenvVersion}")

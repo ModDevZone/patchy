@@ -24,8 +24,8 @@
 
 package zone.moddev.patchy.updatecheckers.minecraft;
 
-import zone.moddev.patchy.util.Constants;
 import org.jetbrains.annotations.Nullable;
+import zone.moddev.patchy.util.Constants;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -34,7 +34,7 @@ import java.net.URISyntaxException;
 import java.util.List;
 
 public final class MinecraftVersionHelper {
-    
+
     private MinecraftVersionHelper() {
         // Prevent instantiation
     }

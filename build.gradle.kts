@@ -22,6 +22,9 @@ application {
 
 tasks.shadowJar {
     archiveBaseName.set("patchy")
+    manifest {
+        attributes["Implementation-Version"] = project.version
+    }
 }
 
 repositories {
@@ -108,6 +111,7 @@ tasks {
     jar {
         manifest {
             attributes["Main-Class"] = "zone.moddev.patchy.Patchy"
+            attributes["Implementation-Version"] = project.version
         }
     }
 

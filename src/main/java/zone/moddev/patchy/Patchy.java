@@ -115,7 +115,7 @@ public class Patchy {
         initDb();
 
         try {
-            JDABuilder builder = JDABuilder.createDefault(configManager.getPatchyConfig().getApiKey(), INTENTS);
+            JDABuilder builder = JDABuilder.createDefault(configManager.getPatchyConfig().getDiscordToken(), INTENTS);
             DISABLED_CACHE_FLAGS.forEach(builder::disableCache);
             builder.addEventListeners(new GuildConfigListener(configManager), new ShutdownCommand(), new ConfigCommand(), new VersionCommand());
 

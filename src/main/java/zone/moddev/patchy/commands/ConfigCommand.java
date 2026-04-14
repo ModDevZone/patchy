@@ -24,6 +24,7 @@
 
 package zone.moddev.patchy.commands;
 
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
@@ -64,7 +65,11 @@ public class ConfigCommand extends ListenerAdapter {
                     GuildChannel channel = event.getOption("channel").getAsChannel();
                     setChannel(config, type, channel.getId());
                     Patchy.getInstance().getConfigManager().saveGuildConfig(event.getGuild().getId(), config);
-                    event.reply("Notification channel for " + typeStr + " updates has been set to " + channel.getAsMention()).queue();
+                    EmbedBuilder embed = new EmbedBuilder()
+                            .setColor(0x2e8b57) // SeaGreen
+                            .setTitle("Configuration Updated")
+                            .setDescription("Notification channel for " + typeStr.toLowerCase() + " updates has been set to " + channel.getAsMention());
+                    event.replyEmbeds(embed.build()).queue();
                 }
 
                 case "unset" -> {
@@ -72,7 +77,11 @@ public class ConfigCommand extends ListenerAdapter {
                     NotificationChannelType type = NotificationChannelType.valueOf(typeStr);
                     setChannel(config, type, null);
                     Patchy.getInstance().getConfigManager().saveGuildConfig(event.getGuild().getId(), config);
-                    event.reply("Notifications for " + typeStr + " updates have been disabled.").queue();
+                    EmbedBuilder embed = new EmbedBuilder()
+                            .setColor(0x2e8b57) // SeaGreen
+                            .setTitle("Configuration Updated")
+                            .setDescription("Notifications for " + typeStr.toLowerCase() + " updates have been disabled.");
+                    event.replyEmbeds(embed.build()).queue();
                 }
 
                 case "view" -> {
@@ -92,7 +101,11 @@ public class ConfigCommand extends ListenerAdapter {
                     Role role = event.getOption("role").getAsRole();
                     config.setBotControllerRoleId(role.getId());
                     Patchy.getInstance().getConfigManager().saveGuildConfig(event.getGuild().getId(), config);
-                    event.reply("Bot controller role has been set to " + role.getAsMention()).queue();
+                    EmbedBuilder embed = new EmbedBuilder()
+                            .setColor(0x2e8b57) // SeaGreen
+                            .setTitle("Configuration Updated")
+                            .setDescription("Bot controller role has been set to " + role.getAsMention());
+                    event.replyEmbeds(embed.build()).queue();
                 }
             }
         } catch (IOException exception) {

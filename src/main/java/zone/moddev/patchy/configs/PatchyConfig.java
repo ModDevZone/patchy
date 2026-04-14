@@ -32,7 +32,7 @@ public class PatchyConfig {
     private String botOwnerId = "<THE_BOT_OWNERS_ID>";
 
     @JsonProperty
-    private String apiKey = "<YOUR_TOKEN_HERE>";
+    private String discordToken = "<THE_BOTS_TOKEN>";
 
     public PatchyConfig() {
     }
@@ -51,7 +51,7 @@ public class PatchyConfig {
      *
      * @return the Discord api key.
      */
-    public String getApiKey() {
-        return apiKey;
+    public String getDiscordToken() {
+        return discordToken;
     }
 }

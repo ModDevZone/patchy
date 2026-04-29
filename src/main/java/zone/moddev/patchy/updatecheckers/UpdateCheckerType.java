@@ -45,6 +45,11 @@ public enum UpdateCheckerType {
         return this.name;
     }
 
+    @Override
+    public String toString() {
+        return getName();
+    }
+
     public NotificationChannelType getChannelType() {
         return channelType;
     }

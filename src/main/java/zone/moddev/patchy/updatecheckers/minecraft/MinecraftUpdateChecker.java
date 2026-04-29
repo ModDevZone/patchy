@@ -29,68 +29,74 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import zone.moddev.patchy.updatecheckers.AbstractUpdateChecker;
 import zone.moddev.patchy.updatecheckers.UpdateCheckerType;
-import zone.moddev.patchy.updatecheckers.minecraft.MinecraftVersionHelper.VersionsInfo;
-import zone.moddev.patchy.util.Constants;
-import zone.moddev.patchy.util.JsonSerializer;
 import zone.moddev.patchy.util.NetworkUtils;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
-public final class MinecraftUpdateChecker extends AbstractUpdateChecker<VersionsInfo> {
+public final class MinecraftUpdateChecker extends AbstractUpdateChecker<MinecraftUpdateChecker.MinecraftVersion> {
 
     private static final String CHANGELOG_BASE_URL = "https://www.minecraft.net/en-us/article/minecraft-";
 
+    private static final String KEY_RELEASE = "release";
+    private static final String KEY_SNAPSHOT = "snapshot";
+
     public MinecraftUpdateChecker() {
-        super(NotifierConfiguration.<MinecraftVersionHelper.VersionsInfo>builder()
-                .type(UpdateCheckerType.MINECRAFT)
+        super(MinecraftUpdateChecker.MinecraftVersion.class, NotifierConfiguration.<MinecraftUpdateChecker.MinecraftVersion>builder(UpdateCheckerType.MINECRAFT)
                 .versionComparator(NotifierConfiguration.notEqual())
-                .serializer(new JsonSerializer<>(Constants.GSON, VersionsInfo.class))
+                .versionKeyExtractor(MinecraftVersion::version)
                 .webhookInfo(new WebhookInfo("Minecraft Updates", "https://www.minecraft.net/etc.clientlibs/minecraftnet/clientlibs/clientlib-site/resources/favicon.ico"))
                 .build());
     }
 
     @Override
-    protected VersionsInfo queryLatest() {
+    protected List<String> getUpdateKeys() {
+        return List.of(KEY_RELEASE, KEY_SNAPSHOT);
+    }
+
+    @Override
+    protected Map<String, MinecraftUpdateChecker.MinecraftVersion> fetchLatest() throws IOException {
         final var meta = MinecraftVersionHelper.getMeta();
         if (meta == null) {
-            return null;
+            return Map.of();
         }
-        return meta.latest;
+
+        var release = new MinecraftUpdateChecker.MinecraftVersion(meta.latest.release(), VersionType.RELEASE);
+        var snapshot = new MinecraftUpdateChecker.MinecraftVersion(meta.latest.snapshot(), getSnapshotVersionType(meta.latest.snapshot()));
+
+        return Map.of(KEY_RELEASE, release, KEY_SNAPSHOT, snapshot);
     }
 
     @NotNull
     @Override
-    protected List<EmbedBuilder> getEmbeds(@Nullable final VersionsInfo oldVersion, final @NotNull VersionsInfo newVersion) {
+    protected List<EmbedBuilder> getEmbeds(String key, @Nullable final MinecraftUpdateChecker.MinecraftVersion oldVersion, final @NotNull MinecraftUpdateChecker.MinecraftVersion newVersion) {
         if (oldVersion == null) {
             return List.of(new EmbedBuilder()
                     .setDescription("New Minecraft Version Available!")
                     .setColor(0x00FFFF)
-                    .setDescription(newVersion.snapshot()));
+                    .setDescription(newVersion.version()));
         }
 
-        VersionType versionType = getVersionType(oldVersion, newVersion);
-        String version = versionType == VersionType.RELEASE ? newVersion.release() : newVersion.snapshot();
-        String changelogUrl = versionType.getChangelogUrl(version);
+        String changelogUrl = newVersion.type.getChangelogUrl(newVersion.version());
 
         final EmbedBuilder embed = new EmbedBuilder()
-                .setTitle(versionType.getDisplay() + " Available!")
-                .setColor(versionType.getColor());
+                .setTitle(newVersion.type.getDisplay() + " Available!")
+                .setColor(newVersion.type.getColor());
 
         if (NetworkUtils.isValidUrl(changelogUrl)) {
-            embed.setDescription(version + "\nChangelog: " + changelogUrl);
+            embed.setDescription(newVersion.version() + "\nChangelog: " + changelogUrl);
         } else {
-            embed.setDescription(version);
+            embed.setDescription(newVersion.version());
         }
 
         return List.of(embed);
     }
 
-    private VersionType getVersionType(VersionsInfo oldVersion, VersionsInfo newVersion) {
-        if (!oldVersion.release().equals(newVersion.release())) {
-            return VersionType.RELEASE;
-        } else if (newVersion.snapshot().contains("-rc")) {
+    private VersionType getSnapshotVersionType(String version) {
+        if (version.contains("-rc")) {
             return VersionType.RELEASE_CANDIDATE;
-        } else if (newVersion.snapshot().contains("-pre")) {
+        } else if (version.contains("-pre")) {
             return VersionType.PRE_RELEASE;
         } else {
             return VersionType.SNAPSHOT;
@@ -128,5 +134,11 @@ public final class MinecraftUpdateChecker extends AbstractUpdateChecker<Versions
             }
             return CHANGELOG_BASE_URL + String.format(urlPath, formattedVersion);
         }
+
+        public boolean isRelease() {
+            return this == RELEASE;
+        }
     }
+
+    protected record MinecraftVersion(String version, VersionType type) {}
 }

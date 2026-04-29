@@ -22,26 +22,21 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.util;
+package zone.moddev.patchy.util.serialization;
 
-import com.google.gson.Gson;
+import com.google.gson.*;
 
-public class JsonSerializer<T> implements StringSerializer<T> {
-    private final Gson gson;
-    private final Class<T> type;
+import java.lang.reflect.Type;
+import java.time.Instant;
 
-    public JsonSerializer(Gson gson, Class<T> type) {
-        this.gson = gson;
-        this.type = type;
+public class InstantAdapter implements JsonSerializer<Instant>, JsonDeserializer<Instant> {
+    @Override
+    public Instant deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+        return Instant.parse(json.getAsString());
     }
 
     @Override
-    public String serialize(T value) {
-        return gson.toJson(value);
-    }
-
-    @Override
-    public T deserialize(String value) {
-        return gson.fromJson(value, type);
+    public JsonElement serialize(Instant src, Type typeOfSrc, JsonSerializationContext context) {
+        return new JsonPrimitive(src.toString());
     }
 }

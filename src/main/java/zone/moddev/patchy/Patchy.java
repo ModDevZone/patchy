@@ -34,16 +34,17 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
+import org.flywaydb.core.Flyway;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import zone.moddev.patchy.updatecheckers.NotificationChannelType;
 import zone.moddev.patchy.commands.ConfigCommand;
 import zone.moddev.patchy.commands.ShutdownCommand;
 import zone.moddev.patchy.commands.VersionCommand;
 import zone.moddev.patchy.configs.ConfigManager;
 import zone.moddev.patchy.configs.GuildConfigListener;
+import zone.moddev.patchy.updatecheckers.NotificationChannelType;
 import zone.moddev.patchy.updatecheckers.blockbench.BlockbenchUpdateChecker;
 import zone.moddev.patchy.updatecheckers.fabric.api.FabricApiUpdateChecker;
 import zone.moddev.patchy.updatecheckers.fabric.loader.FabricLoaderUpdateChecker;
@@ -51,7 +52,6 @@ import zone.moddev.patchy.updatecheckers.forge.ForgeUpdateChecker;
 import zone.moddev.patchy.updatecheckers.minecraft.MinecraftUpdateChecker;
 import zone.moddev.patchy.updatecheckers.neoforge.NeoForgeUpdateChecker;
 import zone.moddev.patchy.updatecheckers.parchment.ParchmentUpdateChecker;
-import zone.moddev.patchy.util.dao.UpdateCheckerDAO;
 
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -66,12 +66,15 @@ public class Patchy {
     public static final Logger LOGGER = LoggerFactory.getLogger("Patchy");
     public static final String GITHUB_REPO = "https://github.com/moddevzone/patchy";
     public static final String WEBSITE_URL = "https://moddev.zone/bots/patchy";
+    private static final String DATABASE_CONNECTION_STRING = "jdbc:sqlite:data.db";
 
     private final JDA jda;
-    private final Jdbi jdbi;
     private final ConfigManager configManager;
     private static Patchy instance;
-    private final HikariDataSource ds;
+    private final HikariDataSource ds = new HikariDataSource() {{
+        setJdbcUrl(DATABASE_CONNECTION_STRING);
+    }};
+    private final Jdbi jdbi = Jdbi.create(ds);
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     private static final Set<GatewayIntent> INTENTS = EnumSet.of(
@@ -90,6 +93,26 @@ public class Patchy {
     public Patchy() {
         instance = this;
         configManager = new ConfigManager();
+
+        String VERSION = Patchy.class.getPackage().getImplementationVersion();
+        LOGGER.info("""
+                          \n
+                          _______    ______  ________   ______   __    __  __      __\s
+                         |       \\  /      \\|        \\ /      \\ |  \\  |  \\|  \\    /  \\
+                         | $$$$$$$\\|  $$$$$$\\\\$$$$$$$$|  $$$$$$\\| $$  | $$ \\$$\\  /  $$
+                         | $$__/ $$| $$__| $$  | $$   | $$   \\$$| $$__| $$  \\$$\\/  $$\s
+                         | $$    $$| $$    $$  | $$   | $$      | $$    $$   \\$$  $$ \s
+                         | $$$$$$$ | $$$$$$$$  | $$   | $$   __ | $$$$$$$$    \\$$$$  \s
+                         | $$      | $$  | $$  | $$   | $$__/  \\| $$  | $$    | $$   \s
+                         | $$      | $$  | $$  | $$    \\$$    $$| $$  | $$    | $$   \s
+                          \\$$       \\$$   \\$$   \\$$     \\$$$$$$  \\$$   \\$$     \\$$   \s
+                          Version: {}
+                          Website: {}
+                          Github Source: {}
+                        """,
+                VERSION == null ? "DEVELOPMENT_BUILD" : VERSION, WEBSITE_URL, GITHUB_REPO);
+
+        initDb();
 
         try {
             JDABuilder builder = JDABuilder.createDefault(configManager.getPatchyConfig().getApiKey(), INTENTS);
@@ -131,31 +154,21 @@ public class Patchy {
             throw new RuntimeException(exception);
         }
 
-        ds = new HikariDataSource();
-        ds.setJdbcUrl("jdbc:sqlite:data.db");
-        jdbi = Jdbi.create(ds);
-        jdbi.installPlugin(new SqlObjectPlugin());
-        jdbi.useExtension(UpdateCheckerDAO.class, UpdateCheckerDAO::createTable);
-
-        String VERSION = Patchy.class.getPackage().getImplementationVersion();
-        LOGGER.info("""
-                          \n
-                          _______    ______  ________   ______   __    __  __      __\s
-                         |       \\  /      \\|        \\ /      \\ |  \\  |  \\|  \\    /  \\
-                         | $$$$$$$\\|  $$$$$$\\\\$$$$$$$$|  $$$$$$\\| $$  | $$ \\$$\\  /  $$
-                         | $$__/ $$| $$__| $$  | $$   | $$   \\$$| $$__| $$  \\$$\\/  $$\s
-                         | $$    $$| $$    $$  | $$   | $$      | $$    $$   \\$$  $$ \s
-                         | $$$$$$$ | $$$$$$$$  | $$   | $$   __ | $$$$$$$$    \\$$$$  \s
-                         | $$      | $$  | $$  | $$   | $$__/  \\| $$  | $$    | $$   \s
-                         | $$      | $$  | $$  | $$    \\$$    $$| $$  | $$    | $$   \s
-                          \\$$       \\$$   \\$$   \\$$     \\$$$$$$  \\$$   \\$$     \\$$   \s
-                          Version: {}
-                          Website: {}
-                          Github Source: {}
-                        """,
-                VERSION == null ? "DEVELOPMENT_BUILD" : VERSION, WEBSITE_URL, GITHUB_REPO);
-
         scheduleUpdateCheckers();
+    }
+
+    private void initDb() {
+        var flywayConfig = Flyway.configure()
+                .dataSource(ds)
+                .baselineOnMigrate(true);
+        var flyway = new Flyway(flywayConfig);
+        var pendingCount = flyway.info().pending().length;
+        LOGGER.info("{} pending DB migrations", pendingCount);
+        if(pendingCount > 0) {
+            flyway.migrate();
+        }
+
+        jdbi.installPlugin(new SqlObjectPlugin());
     }
 
     static void main() {

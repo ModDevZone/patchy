@@ -22,9 +22,11 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.updatecheckers.fabric.api;
+package zone.moddev.patchy.updatecheckers.forge;
 
-import java.util.Map;
-
-public record FabricApiVersions(Map<String, String> byMcVersion) {
+public record ForgeVersion(String id) {
+    @Override
+    public String toString() {
+        return id();
+    }
 }

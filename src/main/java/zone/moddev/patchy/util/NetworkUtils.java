@@ -24,14 +24,15 @@
 
 package zone.moddev.patchy.util;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 
 public final class NetworkUtils {
@@ -77,26 +78,28 @@ public final class NetworkUtils {
      * @param urlString The URL to fetch content from.
      * @return The content of the URL as a String if successful and HTTP 200 OK, null otherwise.
      */
+    @Nullable
     public static String getUrlContent(String urlString) {
-        try {
-            final URL url = new URI(urlString).toURL();
-            final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET"); // Use GET to fetch content
-            connection.setConnectTimeout(5000); // 5 seconds
-            connection.setReadTimeout(5000);    // 5 seconds
-            int responseCode = connection.getResponseCode();
-
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                try (final var in = connection.getInputStream()) {
-                    return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-                }
-            } else {
-                LOGGER.warn("Failed to get URL content for {}: Received HTTP status code {}", urlString, responseCode);
-                return null;
-            }
-        } catch (IOException | URISyntaxException e) {
-            LOGGER.error("Failed to get URL content for {}: {}", urlString, e.getMessage());
+        try (var reader = new InputStreamReader(readUrl(urlString), StandardCharsets.UTF_8)) {
+            return reader.readAllAsString();
+        } catch (IOException e) {
+            LOGGER.error("Failed to get URL content for {}", urlString);
             return null;
         }
+    }
+
+    public static InputStream readUrl(String urlString) throws IOException {
+        final URL url = URI.create(urlString).toURL();
+        final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET"); // Use GET to fetch content
+        connection.setConnectTimeout(5000); // 5 seconds
+        connection.setReadTimeout(5000);    // 5 seconds
+        int responseCode = connection.getResponseCode();
+
+        if (responseCode != HttpURLConnection.HTTP_OK) {
+            throw new ConnectException("Failed to get URL content for %s: Received HTTP status code %s".formatted(urlString, responseCode));
+        }
+
+        return new BufferedInputStream(connection.getInputStream());
     }
 }

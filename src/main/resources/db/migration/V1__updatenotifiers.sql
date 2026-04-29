@@ -22,9 +22,8 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.updatecheckers.neoforge;
-
-import java.util.Map;
-
-public record NeoForgeVersions(Map<String, String> byMcVersion) {
-}
+CREATE TABLE IF NOT EXISTS updatenotifiers
+(
+    name   TEXT PRIMARY KEY,
+    latest TEXT
+);

@@ -48,7 +48,6 @@ public final class NeoForgeUpdateChecker extends AbstractUpdateChecker<NeoForgeV
 
     public NeoForgeUpdateChecker() {
         super(NotifierConfiguration.<NeoForgeVersions>builder()
-                .name("neoforge")
                 .type(UpdateCheckerType.NEOFORGE)
                 .serializer(new JsonSerializer<>(Constants.GSON, NeoForgeVersions.class))
                 .versionComparator(NotifierConfiguration.notEqual())

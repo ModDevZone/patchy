@@ -24,6 +24,7 @@
 
 package zone.moddev.patchy.updatecheckers;
 
+import com.google.common.base.MoreObjects;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.middleman.StandardGuildMessageChannel;
@@ -46,6 +47,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class AbstractUpdateChecker<T> implements Runnable {
     public static final String WEBHOOK_NAME = "UpdateCheckers";
@@ -58,7 +60,7 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
 
     protected AbstractUpdateChecker(final NotifierConfiguration<T> configuration) {
         this.configuration = configuration;
-        this.loggingMarker = MarkerFactory.getMarker(configuration.name);
+        this.loggingMarker = MarkerFactory.getMarker(configuration.getType().getName());
     }
 
     @Nullable
@@ -70,12 +72,12 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
     @Override
     public final void run() {
         if (Patchy.getInstance() == null) {
-            Patchy.LOGGER.warn(loggingMarker, "Cannot start {} update notifier due to the bot instance being null.", configuration.name);
+            Patchy.LOGGER.warn(loggingMarker, "Cannot start {} update notifier due to the bot instance being null.", configuration.getType());
             return;
         }
         if (!pickedUpFromDB) {
             final String oldData = Patchy.getInstance().getJdbi()
-                    .withExtension(UpdateCheckerDAO.class, db -> db.getLatest(configuration.name));
+                    .withExtension(UpdateCheckerDAO.class, db -> db.getLatest(configuration.getType().getName()));
             final Runnable initialQuery = () -> {
                 try {
                     final T queried = queryLatest();
@@ -126,8 +128,7 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
 
-            configuration.channelGetter.apply(guildConfigs)
-                    .stream()
+            configuration.getNotificationChannelsFromGuilds(guildConfigs)
                     .map(it -> Patchy.getJDA().getChannelById(StandardGuildMessageChannel.class, it))
                     .filter(Objects::nonNull)
                     .forEach(channel -> {
@@ -156,20 +157,18 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
     private void update(T latest) {
         this.latest = latest;
         Patchy.getInstance().getJdbi().useExtension(UpdateCheckerDAO.class, db -> db.setLatest(
-                configuration.name, configuration.serializer.serialize(latest)
+                configuration.getType().getName(), configuration.serializer.serialize(latest)
         ));
     }
 
     public static final class NotifierConfiguration<T> {
-        private final String name;
         private final UpdateCheckerType type;
-        private final Function<List<GuildConfig>, List<String>> channelGetter;
+        private final Function<List<GuildConfig>, Stream<String>> channelGetter;
         private final Comparator<T> versionComparator;
         private final StringSerializer<T> serializer;
         private final WebhookInfo webhookInfo;
 
-        private NotifierConfiguration(String name, UpdateCheckerType type, Function<List<GuildConfig>, List<String>> channelGetter, Comparator<T> versionComparator, StringSerializer<T> serializer, WebhookInfo webhookInfo) {
-            this.name = name;
+        private NotifierConfiguration(UpdateCheckerType type, Function<List<GuildConfig>, Stream<String>> channelGetter, Comparator<T> versionComparator, StringSerializer<T> serializer, WebhookInfo webhookInfo) {
             this.type = type;
             this.channelGetter = channelGetter;
             this.versionComparator = versionComparator;
@@ -181,15 +180,15 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
             return new NotifierConfigurationBuilder<>();
         }
 
-        public String getName() {
-            return this.name;
-        }
-
         public UpdateCheckerType getType() {
             return this.type;
         }
 
-        public Function<List<GuildConfig>, List<String>> getChannelGetter() {
+        public Stream<String> getNotificationChannelsFromGuilds(List<GuildConfig> guilds) {
+            return channelGetter.apply(guilds);
+        }
+
+        public Function<List<GuildConfig>, Stream<String>> getChannelGetter() {
             return this.channelGetter;
         }
 
@@ -209,48 +208,27 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
         public boolean equals(final Object o) {
             if (o == this) return true;
             if (!(o instanceof final NotifierConfiguration<?> other)) return false;
-            final Object this$name = this.getName();
-            final Object other$name = other.getName();
-            if (!Objects.equals(this$name, other$name)) return false;
-            final Object this$type = this.getType();
-            final Object other$type = other.getType();
-            if (!Objects.equals(this$type, other$type)) return false;
-            final Object this$channelGetter = this.getChannelGetter();
-            final Object other$channelGetter = other.getChannelGetter();
-            if (!Objects.equals(this$channelGetter, other$channelGetter)) return false;
-            final Object this$versionComparator = this.getVersionComparator();
-            final Object other$versionComparator = other.getVersionComparator();
-            if (!Objects.equals(this$versionComparator, other$versionComparator)) return false;
-            final Object this$serializer = this.getSerializer();
-            final Object other$serializer = other.getSerializer();
-            if (!Objects.equals(this$serializer, other$serializer)) return false;
-            final Object this$webhookInfo = this.getWebhookInfo();
-            final Object other$webhookInfo = other.getWebhookInfo();
-            return Objects.equals(this$webhookInfo, other$webhookInfo);
+            return this.type == other.type
+                    && Objects.equals(this.channelGetter, other.channelGetter)
+                    && Objects.equals(this.versionComparator, other.versionComparator)
+                    && Objects.equals(this.serializer, other.serializer)
+                    && Objects.equals(this.webhookInfo, other.webhookInfo);
         }
 
         @Override
         public int hashCode() {
-            final int PRIME = 59;
-            int result = 1;
-            final Object $name = this.getName();
-            result = result * PRIME + ($name == null ? 43 : $name.hashCode());
-            final Object $type = this.getType();
-            result = result * PRIME + ($type == null ? 43 : $type.hashCode());
-            final Object $channelGetter = this.getChannelGetter();
-            result = result * PRIME + ($channelGetter == null ? 43 : $channelGetter.hashCode());
-            final Object $versionComparator = this.getVersionComparator();
-            result = result * PRIME + ($versionComparator == null ? 43 : $versionComparator.hashCode());
-            final Object $serializer = this.getSerializer();
-            result = result * PRIME + ($serializer == null ? 43 : $serializer.hashCode());
-            final Object $webhookInfo = this.getWebhookInfo();
-            result = result * PRIME + ($webhookInfo == null ? 43 : $webhookInfo.hashCode());
-            return result;
+            return Objects.hash(type, channelGetter, versionComparator, serializer, webhookInfo);
         }
 
         @Override
         public String toString() {
-            return "AbstractUpdateChecker.NotifierConfiguration(name=" + this.getName() + ", type=" + this.getType() + ", channelGetter=" + this.getChannelGetter() + ", versionComparator=" + this.getVersionComparator() + ", serializer=" + this.getSerializer() + ", webhookInfo=" + this.getWebhookInfo() + ")";
+            return MoreObjects.toStringHelper(this)
+                    .add("type", this.type)
+                    .add("channelGetter", this.channelGetter)
+                    .add("versionComparator", this.versionComparator)
+                    .add("serializer", this.serializer)
+                    .add("webhookInfo", this.webhookInfo)
+                    .toString();
         }
 
         public static <T> Comparator<T> notEqual() {
@@ -258,9 +236,8 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
         }
 
         public static class NotifierConfigurationBuilder<T> {
-            private String name;
             private UpdateCheckerType type;
-            private Function<List<GuildConfig>, List<String>> channelGetter;
+            private Function<List<GuildConfig>, Stream<String>> channelGetter;
             private Comparator<T> versionComparator;
             private StringSerializer<T> serializer;
             private WebhookInfo webhookInfo;
@@ -268,17 +245,12 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
             NotifierConfigurationBuilder() {
             }
 
-            public NotifierConfigurationBuilder<T> name(String name) {
-                this.name = name;
-                return this;
-            }
-
             public NotifierConfigurationBuilder<T> type(UpdateCheckerType type) {
                 this.type = type;
                 return this;
             }
 
-            public NotifierConfigurationBuilder<T> channelGetter(Function<List<GuildConfig>, List<String>> channelGetter) {
+            public NotifierConfigurationBuilder<T> channelGetter(Function<List<GuildConfig>, Stream<String>> channelGetter) {
                 this.channelGetter = channelGetter;
                 return this;
             }
@@ -301,17 +273,22 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
             public NotifierConfiguration<T> build() {
                 if (this.channelGetter == null && this.type != null) {
                     this.channelGetter = configs -> configs.stream()
-                            .map(config -> config.getChannelId(this.type))
+                            .map(config -> config.getChannelId(this.type.getChannelType()))
                             .filter(Objects::nonNull)
-                            .distinct()
-                            .toList();
+                            .distinct();
                 }
                 Objects.requireNonNull(this.channelGetter, "channelGetter cannot be null. Did you forget to set the type?");
-                return new NotifierConfiguration<>(name, type, channelGetter, versionComparator, serializer, webhookInfo);
+                return new NotifierConfiguration<>(type, channelGetter, versionComparator, serializer, webhookInfo);
             }
 
             public String toString() {
-                return "AbstractUpdateChecker.NotifierConfiguration.NotifierConfigurationBuilder(name=" + this.name + ", type=" + this.type + ", channelGetter=" + this.channelGetter + ", versionComparator=" + this.versionComparator + ", serializer=" + this.serializer + ", webhookInfo=" + this.webhookInfo + ")";
+                return MoreObjects.toStringHelper(this)
+                        .add("type", this.type)
+                        .add("channelGetter", this.channelGetter)
+                        .add("versionComparator", this.versionComparator)
+                        .add("serializer", this.serializer)
+                        .add("webhookInfo", this.webhookInfo)
+                        .toString();
             }
         }
     }

@@ -49,6 +49,7 @@ val jdbi3SqlObjectVersion = "3.52.0"
 val sqliteVersion = "3.51.3.0"
 val hikariVersion = "7.0.2"
 val fastUtilVersion = "8.5.18"
+val guavaVersion = "33.6.0-jre"
 
 dependencies {
     implementation("net.dv8tion:JDA:${jdaVersion}")
@@ -64,6 +65,7 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:${sqliteVersion}")
     implementation("com.zaxxer:HikariCP:${hikariVersion}")
     implementation("it.unimi.dsi:fastutil:${fastUtilVersion}")
+    implementation("com.google.guava:guava:${guavaVersion}")
 }
 
 idea {

@@ -38,12 +38,12 @@ import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import zone.moddev.patchy.updatecheckers.NotificationChannelType;
 import zone.moddev.patchy.commands.ConfigCommand;
 import zone.moddev.patchy.commands.ShutdownCommand;
 import zone.moddev.patchy.commands.VersionCommand;
 import zone.moddev.patchy.configs.ConfigManager;
 import zone.moddev.patchy.configs.GuildConfigListener;
-import zone.moddev.patchy.updatecheckers.UpdateCheckerType;
 import zone.moddev.patchy.updatecheckers.blockbench.BlockbenchUpdateChecker;
 import zone.moddev.patchy.updatecheckers.fabric.api.FabricApiUpdateChecker;
 import zone.moddev.patchy.updatecheckers.fabric.loader.FabricLoaderUpdateChecker;
@@ -101,8 +101,8 @@ public class Patchy {
             SubcommandData setCommand = new SubcommandData("set", "Set a notification channel for an update type.")
                     .addOptions(
                             new OptionData(OptionType.STRING, "type", "The type of updates to notify for.", true)
-                                    .addChoices(Arrays.stream(UpdateCheckerType.values())
-                                            .map(e -> new Command.Choice(e.name().toLowerCase(), e.name().toLowerCase()))
+                                    .addChoices(Arrays.stream(NotificationChannelType.values())
+                                            .map(e -> new Command.Choice(e.getName(), e.name()))
                                             .collect(Collectors.toList())),
                             new OptionData(OptionType.CHANNEL, "channel", "The channel to send notifications to.", true)
                     );
@@ -110,8 +110,8 @@ public class Patchy {
             SubcommandData unsetCommand = new SubcommandData("unset", "Disable notifications for an update type.")
                     .addOptions(
                             new OptionData(OptionType.STRING, "type", "The type of updates to disable notifications for.", true)
-                                    .addChoices(Arrays.stream(UpdateCheckerType.values())
-                                            .map(e -> new Command.Choice(e.name().toLowerCase(), e.name().toLowerCase()))
+                                    .addChoices(Arrays.stream(NotificationChannelType.values())
+                                            .map(e -> new Command.Choice(e.getName(), e.name()))
                                             .collect(Collectors.toList()))
                     );
 

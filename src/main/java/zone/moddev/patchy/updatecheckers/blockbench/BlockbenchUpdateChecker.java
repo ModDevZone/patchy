@@ -46,7 +46,6 @@ public class BlockbenchUpdateChecker extends AbstractUpdateChecker<GithubRelease
 
     public BlockbenchUpdateChecker() {
         super(NotifierConfiguration.<GithubRelease>builder()
-                .name("blockbench")
                 .type(UpdateCheckerType.BLOCKBENCH)
                 .versionComparator(Comparator.comparing(release -> Instant.parse(release.published_at())))
                 .serializer(new JsonSerializer<>(Constants.GSON, GithubRelease.class))

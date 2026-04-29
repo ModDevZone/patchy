@@ -42,7 +42,6 @@ public final class MinecraftUpdateChecker extends AbstractUpdateChecker<Versions
 
     public MinecraftUpdateChecker() {
         super(NotifierConfiguration.<MinecraftVersionHelper.VersionsInfo>builder()
-                .name("minecraft")
                 .type(UpdateCheckerType.MINECRAFT)
                 .versionComparator(NotifierConfiguration.notEqual())
                 .serializer(new JsonSerializer<>(Constants.GSON, VersionsInfo.class))

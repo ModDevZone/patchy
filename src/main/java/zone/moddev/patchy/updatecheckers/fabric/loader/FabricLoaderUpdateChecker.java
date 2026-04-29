@@ -38,8 +38,7 @@ public final class FabricLoaderUpdateChecker extends AbstractUpdateChecker<Strin
 
     public FabricLoaderUpdateChecker() {
         super(NotifierConfiguration.<String>builder()
-                .name("fabricloader")
-                .type(UpdateCheckerType.FABRIC)
+                .type(UpdateCheckerType.FABRIC_LOADER)
                 .serializer(new SelfSerializer())
                 .versionComparator(NotifierConfiguration.notEqual())
                 .webhookInfo(new WebhookInfo("Fabric Loader Updates", "https://github.com/fabricmc.png"))

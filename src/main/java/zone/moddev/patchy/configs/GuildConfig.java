@@ -26,7 +26,7 @@ package zone.moddev.patchy.configs;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jetbrains.annotations.Nullable;
-import zone.moddev.patchy.updatecheckers.UpdateCheckerType;
+import zone.moddev.patchy.updatecheckers.NotificationChannelType;
 
 public class GuildConfig {
 
@@ -122,7 +122,7 @@ public class GuildConfig {
     }
 
     @Nullable
-    public String getChannelId(UpdateCheckerType type) {
+    public String getChannelId(NotificationChannelType type) {
         return switch (type) {
             case MINECRAFT -> getMinecraftNewsChannelId();
             case BLOCKBENCH -> getBlockbenchNewsChannelId();

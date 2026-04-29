@@ -48,7 +48,6 @@ public final class ForgeUpdateChecker extends AbstractUpdateChecker<MinecraftFor
 
     public ForgeUpdateChecker() {
         super(NotifierConfiguration.<MinecraftForgeVersions>builder()
-                .name("forge")
                 .type(UpdateCheckerType.FORGE)
                 .serializer(new JsonSerializer<>(Constants.GSON, MinecraftForgeVersions.class))
                 .versionComparator(NotifierConfiguration.notEqual())

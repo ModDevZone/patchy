@@ -43,8 +43,7 @@ public final class FabricApiUpdateChecker extends AbstractUpdateChecker<FabricAp
 
     public FabricApiUpdateChecker() {
         super(NotifierConfiguration.<FabricApiVersions>builder()
-                .name("fabricapi")
-                .type(UpdateCheckerType.FABRIC)
+                .type(UpdateCheckerType.FABRIC_API)
                 .serializer(new JsonSerializer<>(Constants.GSON, FabricApiVersions.class))
                 .versionComparator(NotifierConfiguration.notEqual())
                 .webhookInfo(new WebhookInfo("Fabric API Updates", "https://github.com/fabricmc.png"))

@@ -40,7 +40,6 @@ public final class ParchmentUpdateChecker extends AbstractUpdateChecker<Parchmen
 
     public ParchmentUpdateChecker() {
         super(NotifierConfiguration.<ParchmentVersion>builder()
-                .name("parchment")
                 .type(UpdateCheckerType.PARCHMENT)
                 .versionComparator(Comparator.comparing(ParchmentVersion::getDate))
                 .serializer(new JsonSerializer<>(Constants.GSON, ParchmentVersion.class))

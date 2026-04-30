@@ -24,6 +24,7 @@
 
 package zone.moddev.patchy.updatecheckers;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -39,11 +40,7 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -83,7 +80,7 @@ public class SharedVersionHelpers {
      * @return An array of all versions, or null if they could not be resolved.
      */
     @Nullable
-    public static String[] getVersionsFromMavenMetadata(String url) {
+    public static String[] getVersionsFromMavenMetadata(String url) throws IOException {
         String content = NetworkUtils.getUrlContent(url);
         if (content == null) {
             return null;
@@ -104,6 +101,9 @@ public class SharedVersionHelpers {
             return versions;
         } catch (SAXException | XPathExpressionException | ParserConfigurationException | IOException ex) {
             Patchy.LOGGER.error("Failed to resolve versions from url '{}'", url, ex);
+            if(ex instanceof IOException ioe) {
+                throw ioe;
+            }
         }
         return null;
     }
@@ -115,12 +115,14 @@ public class SharedVersionHelpers {
      * @param mcVersionExtractor A function that extracts the Minecraft version from a version string.
      * @return A map of Minecraft versions to the latest corresponding version.
      */
-    public static Map<String, String> getVersionsByMinecraftVersion(String url, Function<String, String> mcVersionExtractor) {
+    public static <T> Map<String, T> getVersionsByMinecraftVersion(String url, Function<String, @Nullable T> deserializer, Function<@NotNull T, @Nullable String> mcVersionExtractor) throws IOException {
         final String[] versions = getVersionsFromMavenMetadata(url);
         if (versions == null) {
             return Collections.emptyMap();
         }
         return Arrays.stream(versions)
+                .map(deserializer)
+                .filter(Objects::nonNull)
                 .map(v -> new AbstractMap.SimpleImmutableEntry<>(mcVersionExtractor.apply(v), v))
                 .filter(e -> e.getKey() != null)
                 .collect(Collectors.toMap(
@@ -129,6 +131,10 @@ public class SharedVersionHelpers {
                         (a, b) -> b, // Keep the last one found for a given MC version
                         LinkedHashMap::new // Preserve insertion order
                 ));
+    }
+
+    public static Map<String, String> getVersionsByMinecraftVersion(String url, Function<String, String> mcVersionExtractor) throws IOException {
+        return getVersionsByMinecraftVersion(url, Function.identity(), mcVersionExtractor);
     }
 
     public static String replaceGitHubReferences(String changelog, String repo) {

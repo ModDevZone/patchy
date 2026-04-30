@@ -32,7 +32,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import zone.moddev.patchy.Patchy;
 import zone.moddev.patchy.configs.GuildConfig;
-import zone.moddev.patchy.updatecheckers.UpdateCheckerType;
+import zone.moddev.patchy.updatecheckers.NotificationChannelType;
 
 import java.io.IOException;
 
@@ -60,7 +60,7 @@ public class ConfigCommand extends ListenerAdapter {
             switch (subcommand) {
                 case "set" -> {
                     String typeStr = event.getOption("type").getAsString();
-                    UpdateCheckerType type = UpdateCheckerType.valueOf(typeStr.toUpperCase());
+                    NotificationChannelType type = NotificationChannelType.valueOf(typeStr);
                     GuildChannel channel = event.getOption("channel").getAsChannel();
                     setChannel(config, type, channel.getId());
                     Patchy.getInstance().getConfigManager().saveGuildConfig(event.getGuild().getId(), config);
@@ -69,7 +69,7 @@ public class ConfigCommand extends ListenerAdapter {
 
                 case "unset" -> {
                     String typeStr = event.getOption("type").getAsString();
-                    UpdateCheckerType type = UpdateCheckerType.valueOf(typeStr.toUpperCase());
+                    NotificationChannelType type = NotificationChannelType.valueOf(typeStr);
                     setChannel(config, type, null);
                     Patchy.getInstance().getConfigManager().saveGuildConfig(event.getGuild().getId(), config);
                     event.reply("Notifications for " + typeStr + " updates have been disabled.").queue();
@@ -77,7 +77,7 @@ public class ConfigCommand extends ListenerAdapter {
 
                 case "view" -> {
                     StringBuilder sb = new StringBuilder("Current update notification channels:\n");
-                    for (UpdateCheckerType type : UpdateCheckerType.values()) {
+                    for (NotificationChannelType type : NotificationChannelType.values()) {
                         String channelId = getChannel(config, type);
                         if (channelId != null) {
                             sb.append(type.name()).append(": <#").append(channelId).append(">\n");
@@ -117,7 +117,7 @@ public class ConfigCommand extends ListenerAdapter {
         return false;
     }
 
-    private void setChannel(GuildConfig config, UpdateCheckerType type, String channelId) {
+    private void setChannel(GuildConfig config, NotificationChannelType type, String channelId) {
         switch (type) {
             case MINECRAFT -> config.setMinecraftNewsChannelId(channelId);
             case BLOCKBENCH -> config.setBlockbenchNewsChannelId(channelId);
@@ -128,7 +128,7 @@ public class ConfigCommand extends ListenerAdapter {
         }
     }
 
-    private String getChannel(GuildConfig config, UpdateCheckerType type) {
+    private String getChannel(GuildConfig config, NotificationChannelType type) {
         return switch (type) {
             case MINECRAFT -> config.getMinecraftNewsChannelId();
             case BLOCKBENCH -> config.getBlockbenchNewsChannelId();
@@ -138,4 +138,5 @@ public class ConfigCommand extends ListenerAdapter {
             case FABRIC -> config.getFabricNewsChannelId();
         };
     }
+
 }

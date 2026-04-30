@@ -26,6 +26,7 @@ package zone.moddev.patchy.updatecheckers.forge;
 
 import zone.moddev.patchy.updatecheckers.SharedVersionHelpers;
 
+import java.io.IOException;
 import java.util.Map;
 
 public final class ForgeVersionHelper extends SharedVersionHelpers {
@@ -41,8 +42,8 @@ public final class ForgeVersionHelper extends SharedVersionHelpers {
      *
      * @return A map of Minecraft versions to the latest corresponding Forge version.
      */
-    public static Map<String, String> getForgeVersions() {
-        return getVersionsByMinecraftVersion(METADATA_URL, ForgeVersionHelper::getMinecraftVersionFromForge);
+    public static Map<String, ForgeVersion> getForgeVersions() throws IOException {
+        return getVersionsByMinecraftVersion(METADATA_URL, ForgeVersion::new, ForgeVersionHelper::getMinecraftVersionFromForge);
     }
 
     /**
@@ -51,7 +52,7 @@ public final class ForgeVersionHelper extends SharedVersionHelpers {
      * @param forgeVersion The full Forge version string we need to get the Minecraft version information from.
      * @return The Minecraft version that this Forge build was released for.
      */
-    public static String getMinecraftVersionFromForge(String forgeVersion) {
-        return forgeVersion.split("-")[0];
+    public static String getMinecraftVersionFromForge(ForgeVersion forgeVersion) {
+        return forgeVersion.id().split("-")[0];
     }
 }

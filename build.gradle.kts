@@ -1,3 +1,4 @@
+import org.gradle.internal.impldep.org.apache.http.client.methods.RequestBuilder.options
 import org.jetbrains.gradle.ext.settings
 import org.jetbrains.gradle.ext.copyright
 
@@ -7,6 +8,7 @@ plugins {
     application
     id("com.gradleup.shadow") version "9.4.1"
     id("org.jetbrains.gradle.plugin.idea-ext") version "1.4.1"
+    id("org.flywaydb.flyway") version "12.5.0"
 }
 
 group = "zone.moddev.patchy"
@@ -49,6 +51,9 @@ val jdbi3SqlObjectVersion = "3.52.0"
 val sqliteVersion = "3.51.3.0"
 val hikariVersion = "7.0.2"
 val fastUtilVersion = "8.5.18"
+val guavaVersion = "33.6.0-jre"
+val flywayVersion = "12.4.0"
+val flexverVersion = "1.1.1"
 
 dependencies {
     implementation("net.dv8tion:JDA:${jdaVersion}")
@@ -64,6 +69,9 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:${sqliteVersion}")
     implementation("com.zaxxer:HikariCP:${hikariVersion}")
     implementation("it.unimi.dsi:fastutil:${fastUtilVersion}")
+    implementation("com.google.guava:guava:${guavaVersion}")
+    implementation("org.flywaydb:flyway-core:${flywayVersion}")
+    implementation("com.unascribed:flexver-java:${flexverVersion}")
 }
 
 idea {
@@ -85,6 +93,11 @@ java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(25))
     }
+}
+
+flyway {
+    url = "jdbc:sqlite:${project.projectDir}/run/data.db"
+    cleanDisabled = false
 }
 
 tasks {

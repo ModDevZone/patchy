@@ -24,28 +24,29 @@
 
 package zone.moddev.patchy.updatecheckers;
 
+import com.google.common.base.MoreObjects;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.middleman.StandardGuildMessageChannel;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 import zone.moddev.patchy.Patchy;
 import zone.moddev.patchy.configs.GuildConfig;
-import zone.moddev.patchy.util.StringSerializer;
+import zone.moddev.patchy.util.Constants;
 import zone.moddev.patchy.util.dao.UpdateCheckerDAO;
 import zone.moddev.patchy.util.webhook.WebhookManager;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class AbstractUpdateChecker<T> implements Runnable {
     public static final String WEBHOOK_NAME = "UpdateCheckers";
@@ -53,143 +54,242 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
 
     protected final NotifierConfiguration<T> configuration;
     protected final Marker loggingMarker;
-    private T latest;
-    private boolean pickedUpFromDB;
+    protected final TypeToken<T> type;
+    private final AtomicBoolean pickedUpFromDB = new AtomicBoolean(false);
+    private final Map<String, T> latest = new HashMap<>(1);
 
-    protected AbstractUpdateChecker(final NotifierConfiguration<T> configuration) {
+    protected AbstractUpdateChecker(final TypeToken<T> type, final NotifierConfiguration<T> configuration) {
+        this.type = type;
         this.configuration = configuration;
-        this.loggingMarker = MarkerFactory.getMarker(configuration.name);
+        this.loggingMarker = MarkerFactory.getMarker(configuration.getType().getName());
     }
 
-    @Nullable
-    protected abstract T queryLatest() throws IOException;
+    protected AbstractUpdateChecker(final Class<T> type, final NotifierConfiguration<T> configuration) {
+        this(TypeToken.get(type), configuration);
+    }
 
-    @NotNull
-    protected abstract List<EmbedBuilder> getEmbeds(@Nullable T oldVersion, T newVersion);
+    protected abstract List<String> getUpdateKeys() throws IOException;
+
+    protected abstract Map<String, T> fetchLatest() throws IOException;
+
+    protected abstract List<EmbedBuilder> getEmbeds(String key, @Nullable T oldVersion, T newVersion) throws IOException;
 
     @Override
     public final void run() {
         if (Patchy.getInstance() == null) {
-            Patchy.LOGGER.warn(loggingMarker, "Cannot start {} update notifier due to the bot instance being null.", configuration.name);
+            Patchy.LOGGER.warn(loggingMarker, "Cannot start {} update notifier due to the bot instance being null.", configuration.getType().getName());
             return;
         }
-        if (!pickedUpFromDB) {
-            final String oldData = Patchy.getInstance().getJdbi()
-                    .withExtension(UpdateCheckerDAO.class, db -> db.getLatest(configuration.name));
-            final Runnable initialQuery = () -> {
-                try {
-                    final T queried = queryLatest();
-                    if (queried != null) {
-                        update(queried);
-                    }
-                } catch (IOException e) {
-                    Patchy.LOGGER.error(loggingMarker, "An exception occurred trying to resolve latest version: ", e);
-                }
-            };
-            if (oldData != null) {
-                try {
-                    latest = configuration.serializer.deserialize(oldData);
-                } catch (Exception ignored) {
-                    initialQuery.run();
-                }
-            } else {
-                initialQuery.run();
-            }
-            pickedUpFromDB = true;
-        }
 
-        final T old = latest;
-        T newVersion = null;
+        List<String> keys;
         try {
-            newVersion = queryLatest();
+            keys = getUpdateKeys();
         } catch (IOException e) {
-            Patchy.LOGGER.error("Encountered exception trying to resolve latest version: ", e);
+            Patchy.LOGGER.error(loggingMarker, "Unable to resolve version keys", e);
+            return;
         }
 
-        if (newVersion != null && (old == null || configuration.versionComparator.compare(old, newVersion) < 0)) {
-            update(newVersion);
+        List<UpdateResult<T>> toUpdate = Patchy.getInstance().getJdbi().inTransaction(handle -> {
+            try {
+                var dbUpdate = handle.attach(UpdateCheckerDAO.class);
 
-            final var embeds = getEmbeds(old, latest);
-
-            if (embeds.isEmpty()) {
-                return;
-            }
-
-            final List<GuildConfig> guildConfigs = Patchy.getJDA().getGuilds().stream()
-                    .map(guild -> {
-                        try {
-                            return Patchy.getInstance().getConfigManager().loadOrCreateGuildConfig(guild);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    })
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-
-            configuration.channelGetter.apply(guildConfigs)
-                    .stream()
-                    .map(it -> Patchy.getJDA().getChannelById(StandardGuildMessageChannel.class, it))
-                    .filter(Objects::nonNull)
-                    .forEach(channel -> {
-                        for (final var embed : embeds) {
-                            embed.setTimestamp(Instant.now());
-                            if (configuration.webhookInfo == null) {
-                                channel.sendMessageEmbeds(embed.build()).queue(msg -> {
-                                    if (channel.getType() == ChannelType.NEWS) {
-                                        msg.crosspost().queue();
-                                    }
-                                });
-                            } else {
-                                WEBHOOKS.sendAndCrosspost(channel,
-                                        configuration.webhookInfo.username(),
-                                        configuration.webhookInfo.avatarUrl(),
-                                        new MessageCreateBuilder().addEmbeds(embed.build()).build()
-                                );
-                            }
+                if (!pickedUpFromDB.getAndSet(true)) {
+                    var oldData = new HashMap<String, String>();
+                    keys.forEach(key -> {
+                        var value = dbUpdate.getLatest(configuration.getType(), key);
+                        if(value != null) {
+                            oldData.put(key, value);
                         }
                     });
-        } else {
-            Patchy.LOGGER.debug(loggingMarker, "No new version found");
+
+                    try {
+                        oldData.forEach((key, value) -> {
+                            if (keys.contains(key)) {
+                                try {
+                                    var deserialized = Constants.GSON.fromJson(value, getTypeForSerialization());
+                                    latest.put(key, deserialized);
+                                } catch (JsonSyntaxException jse) {
+                                    Patchy.LOGGER.debug("Deserialization error: {}\n{}", getTypeForSerialization(), value, jse);
+                                }
+                            }
+                        });
+                    } catch (Exception e) {
+                        Patchy.LOGGER.debug(loggingMarker, "Unable to deserialize stored data, downloading new version", e);
+                        try {
+                            var queried = fetchLatest();
+                            batchUpdate(queried, dbUpdate);
+                        } catch (IOException e2) {
+                            Patchy.LOGGER.error(loggingMarker, "An exception occurred trying to resolve latest version: ", e2);
+                            return List.of();
+                        }
+                    }
+                }
+
+                var results = new ArrayList<UpdateResult<T>>();
+                try {
+                    var newData = fetchLatest();
+
+                    keys.forEach(key -> {
+                        var oldValue = latest.get(key);
+                        var newValue = newData.get(key);
+
+                        if (newValue != null && (oldValue == null || configuration.getVersionComparator().compare(oldValue, newValue) < 0)) {
+                            results.add(new UpdateResult<>(key, newValue, oldValue));
+                        }
+                    });
+                } catch (IOException e) {
+                    Patchy.LOGGER.error(loggingMarker, "Encountered exception trying to resolve latest version: ", e);
+                }
+
+                batchUpdate(results.stream().collect(Collectors.toMap(UpdateResult::key, UpdateResult::newValue)), dbUpdate);
+
+                return results;
+            }
+            catch (Throwable t) {
+                Patchy.LOGGER.error(loggingMarker, "Error while refreshing versions", t);
+                return List.of();
+            }
+        });
+
+        if(!toUpdate.isEmpty()) {
+            Patchy.LOGGER.info(loggingMarker, "Found new version(s):\n\t{}", toUpdate.stream().map(Objects::toString).collect(Collectors.joining("\n\t")));
         }
+
+        var embeds = toUpdate.stream()
+                .flatMap(res -> {
+                    try {
+                        return getEmbeds(res.key(), res.oldValue(), res.newValue()).stream();
+                    } catch (IOException e) {
+                        Patchy.LOGGER.error(loggingMarker, "Unable to build embed for {}/{}", res.key(), res.newValue(), e);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .toList();
+
+        if (embeds.isEmpty()) {
+            Patchy.LOGGER.debug(loggingMarker, "No new version found");
+            return;
+        }
+
+        final List<GuildConfig> guildConfigs = Patchy.getJDA().getGuilds().stream()
+                .map(guild -> {
+                    try {
+                        return Patchy.getInstance().getConfigManager().loadOrCreateGuildConfig(guild);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        configuration.getNotificationChannelsFromGuilds(guildConfigs)
+                .map(it -> Patchy.getJDA().getChannelById(StandardGuildMessageChannel.class, it))
+                .filter(Objects::nonNull)
+                .forEach(channel -> {
+                    for (final var embed : embeds) {
+                        embed.setTimestamp(Instant.now());
+                        if (configuration.webhookInfo == null) {
+                            channel.sendMessageEmbeds(embed.build()).queue(msg -> {
+                                if (channel.getType() == ChannelType.NEWS) {
+                                    msg.crosspost().queue();
+                                }
+                            });
+                        } else {
+                            WEBHOOKS.sendAndCrosspost(channel,
+                                    configuration.webhookInfo.username(),
+                                    configuration.webhookInfo.avatarUrl(),
+                                    new MessageCreateBuilder().addEmbeds(embed.build()).build()
+                            );
+                        }
+                    }
+                });
     }
 
-    private void update(T latest) {
-        this.latest = latest;
-        Patchy.getInstance().getJdbi().useExtension(UpdateCheckerDAO.class, db -> db.setLatest(
-                configuration.name, configuration.serializer.serialize(latest)
-        ));
+    protected TypeToken<T> getTypeForSerialization() {
+        return this.type;
+    }
+
+    private void batchUpdate(Map<String, T> queried, UpdateCheckerDAO dbUpdate) {
+        latest.putAll(queried);
+        var keys = new ArrayList<String>();
+        var versions = new ArrayList<String>();
+        var raw = new ArrayList<String>();
+        queried.forEach((key, version) -> {
+            keys.add(key);
+            versions.add(configuration.getVersionKeyExtractor().apply(version));
+            raw.add(Constants.GSON.toJson(version));
+        });
+        dbUpdate.batchUpdate(configuration.getType(), keys, versions, raw);
+    }
+
+    public record UpdateResult<T>(String key, T newValue, @Nullable T oldValue) {
+    }
+
+    public static abstract class Single<T> extends AbstractUpdateChecker<T> {
+
+        protected Single(TypeToken<T> type, NotifierConfiguration<T> configuration) {
+            super(type, configuration);
+        }
+
+        protected Single(Class<T> type, NotifierConfiguration<T> configuration) {
+            super(type, configuration);
+        }
+
+        @Override
+        protected final List<String> getUpdateKeys() {
+            return List.of(configuration.type.getName());
+        }
+
+        @Override
+        protected final Map<String, T> fetchLatest() throws IOException {
+            var t = fetchLatestSingle();
+            return t != null ? Map.of(configuration.getType().getName(), t) : Map.of();
+        }
+
+        @Nullable
+        protected abstract T fetchLatestSingle() throws IOException;
+
+        @Override
+        protected final List<EmbedBuilder> getEmbeds(String _key, @Nullable T oldVersion, T newVersion) {
+            return getEmbedsSingle(oldVersion, newVersion);
+        }
+
+        protected abstract List<EmbedBuilder> getEmbedsSingle(@Nullable T oldVersion, T newVersion);
     }
 
     public static final class NotifierConfiguration<T> {
-        private final String name;
         private final UpdateCheckerType type;
-        private final Function<List<GuildConfig>, List<String>> channelGetter;
+        private final Function<List<GuildConfig>, Stream<String>> channelGetter;
         private final Comparator<T> versionComparator;
-        private final StringSerializer<T> serializer;
+        private final Function<T, String> versionKeyExtractor;
         private final WebhookInfo webhookInfo;
 
-        private NotifierConfiguration(String name, UpdateCheckerType type, Function<List<GuildConfig>, List<String>> channelGetter, Comparator<T> versionComparator, StringSerializer<T> serializer, WebhookInfo webhookInfo) {
-            this.name = name;
+        private NotifierConfiguration(UpdateCheckerType type, Function<List<GuildConfig>, Stream<String>> channelGetter, Comparator<T> versionComparator, Function<T, String> versionKeyExtractor, WebhookInfo webhookInfo) {
             this.type = type;
             this.channelGetter = channelGetter;
             this.versionComparator = versionComparator;
-            this.serializer = serializer;
+            this.versionKeyExtractor = versionKeyExtractor;
             this.webhookInfo = webhookInfo;
         }
 
-        public static <T> NotifierConfigurationBuilder<T> builder() {
-            return new NotifierConfigurationBuilder<>();
+        public static <T> NotifierConfigurationBuilder<T> builder(UpdateCheckerType type) {
+            return new NotifierConfigurationBuilder<>(type);
         }
 
-        public String getName() {
-            return this.name;
+        public static <T> Comparator<T> notEqual() {
+            return (v1, v2) -> v1.equals(v2) ? 0 : -1;
         }
 
         public UpdateCheckerType getType() {
             return this.type;
         }
 
-        public Function<List<GuildConfig>, List<String>> getChannelGetter() {
+        public Stream<String> getNotificationChannelsFromGuilds(List<GuildConfig> guilds) {
+            return channelGetter.apply(guilds);
+        }
+
+        public Function<List<GuildConfig>, Stream<String>> getChannelGetter() {
             return this.channelGetter;
         }
 
@@ -197,8 +297,8 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
             return this.versionComparator;
         }
 
-        public StringSerializer<T> getSerializer() {
-            return this.serializer;
+        public Function<T, String> getVersionKeyExtractor() {
+            return versionKeyExtractor;
         }
 
         public WebhookInfo getWebhookInfo() {
@@ -209,76 +309,44 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
         public boolean equals(final Object o) {
             if (o == this) return true;
             if (!(o instanceof final NotifierConfiguration<?> other)) return false;
-            final Object this$name = this.getName();
-            final Object other$name = other.getName();
-            if (!Objects.equals(this$name, other$name)) return false;
-            final Object this$type = this.getType();
-            final Object other$type = other.getType();
-            if (!Objects.equals(this$type, other$type)) return false;
-            final Object this$channelGetter = this.getChannelGetter();
-            final Object other$channelGetter = other.getChannelGetter();
-            if (!Objects.equals(this$channelGetter, other$channelGetter)) return false;
-            final Object this$versionComparator = this.getVersionComparator();
-            final Object other$versionComparator = other.getVersionComparator();
-            if (!Objects.equals(this$versionComparator, other$versionComparator)) return false;
-            final Object this$serializer = this.getSerializer();
-            final Object other$serializer = other.getSerializer();
-            if (!Objects.equals(this$serializer, other$serializer)) return false;
-            final Object this$webhookInfo = this.getWebhookInfo();
-            final Object other$webhookInfo = other.getWebhookInfo();
-            return Objects.equals(this$webhookInfo, other$webhookInfo);
+            return this.type == other.type
+                    && Objects.equals(this.channelGetter, other.channelGetter)
+                    && Objects.equals(this.versionComparator, other.versionComparator)
+                    && Objects.equals(this.versionKeyExtractor, other.versionKeyExtractor)
+                    && Objects.equals(this.webhookInfo, other.webhookInfo);
         }
 
         @Override
         public int hashCode() {
-            final int PRIME = 59;
-            int result = 1;
-            final Object $name = this.getName();
-            result = result * PRIME + ($name == null ? 43 : $name.hashCode());
-            final Object $type = this.getType();
-            result = result * PRIME + ($type == null ? 43 : $type.hashCode());
-            final Object $channelGetter = this.getChannelGetter();
-            result = result * PRIME + ($channelGetter == null ? 43 : $channelGetter.hashCode());
-            final Object $versionComparator = this.getVersionComparator();
-            result = result * PRIME + ($versionComparator == null ? 43 : $versionComparator.hashCode());
-            final Object $serializer = this.getSerializer();
-            result = result * PRIME + ($serializer == null ? 43 : $serializer.hashCode());
-            final Object $webhookInfo = this.getWebhookInfo();
-            result = result * PRIME + ($webhookInfo == null ? 43 : $webhookInfo.hashCode());
-            return result;
+            return Objects.hash(type, channelGetter, versionComparator, versionKeyExtractor, webhookInfo);
         }
 
         @Override
         public String toString() {
-            return "AbstractUpdateChecker.NotifierConfiguration(name=" + this.getName() + ", type=" + this.getType() + ", channelGetter=" + this.getChannelGetter() + ", versionComparator=" + this.getVersionComparator() + ", serializer=" + this.getSerializer() + ", webhookInfo=" + this.getWebhookInfo() + ")";
-        }
-
-        public static <T> Comparator<T> notEqual() {
-            return (v1, v2) -> v1.equals(v2) ? 0 : -1;
+            return MoreObjects.toStringHelper(this)
+                    .add("type", this.type)
+                    .add("channelGetter", this.channelGetter)
+                    .add("versionComparator", this.versionComparator)
+                    .add("versionKeyExtractor", this.versionKeyExtractor)
+                    .add("webhookInfo", this.webhookInfo)
+                    .toString();
         }
 
         public static class NotifierConfigurationBuilder<T> {
-            private String name;
             private UpdateCheckerType type;
-            private Function<List<GuildConfig>, List<String>> channelGetter;
+            private Function<List<GuildConfig>, Stream<String>> channelGetter = configs -> configs.stream()
+                    .map(config -> config.getChannelId(this.type.getChannelType()))
+                    .filter(Objects::nonNull)
+                    .distinct();
             private Comparator<T> versionComparator;
-            private StringSerializer<T> serializer;
+            private Function<T, String> versionKeyExtractor = Object::toString;
             private WebhookInfo webhookInfo;
 
-            NotifierConfigurationBuilder() {
-            }
-
-            public NotifierConfigurationBuilder<T> name(String name) {
-                this.name = name;
-                return this;
-            }
-
-            public NotifierConfigurationBuilder<T> type(UpdateCheckerType type) {
+            private NotifierConfigurationBuilder(UpdateCheckerType type) {
                 this.type = type;
-                return this;
             }
 
-            public NotifierConfigurationBuilder<T> channelGetter(Function<List<GuildConfig>, List<String>> channelGetter) {
+            public NotifierConfigurationBuilder<T> channelGetter(Function<List<GuildConfig>, Stream<String>> channelGetter) {
                 this.channelGetter = channelGetter;
                 return this;
             }
@@ -288,8 +356,8 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
                 return this;
             }
 
-            public NotifierConfigurationBuilder<T> serializer(StringSerializer<T> serializer) {
-                this.serializer = serializer;
+            public NotifierConfigurationBuilder<T> versionKeyExtractor(Function<T, String> versionKeyExtractor) {
+                this.versionKeyExtractor = versionKeyExtractor;
                 return this;
             }
 
@@ -299,19 +367,17 @@ public abstract class AbstractUpdateChecker<T> implements Runnable {
             }
 
             public NotifierConfiguration<T> build() {
-                if (this.channelGetter == null && this.type != null) {
-                    this.channelGetter = configs -> configs.stream()
-                            .map(config -> config.getChannelId(this.type))
-                            .filter(Objects::nonNull)
-                            .distinct()
-                            .toList();
-                }
-                Objects.requireNonNull(this.channelGetter, "channelGetter cannot be null. Did you forget to set the type?");
-                return new NotifierConfiguration<>(name, type, channelGetter, versionComparator, serializer, webhookInfo);
+                return new NotifierConfiguration<>(type, channelGetter, versionComparator, versionKeyExtractor, webhookInfo);
             }
 
             public String toString() {
-                return "AbstractUpdateChecker.NotifierConfiguration.NotifierConfigurationBuilder(name=" + this.name + ", type=" + this.type + ", channelGetter=" + this.channelGetter + ", versionComparator=" + this.versionComparator + ", serializer=" + this.serializer + ", webhookInfo=" + this.webhookInfo + ")";
+                return MoreObjects.toStringHelper(this)
+                        .add("type", this.type)
+                        .add("channelGetter", this.channelGetter)
+                        .add("versionComparator", this.versionComparator)
+                        .add("versionKeyExtractor", this.versionKeyExtractor)
+                        .add("webhookInfo", this.webhookInfo)
+                        .toString();
             }
         }
     }

@@ -22,26 +22,8 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.util;
-
-import com.google.gson.Gson;
-
-public class JsonSerializer<T> implements StringSerializer<T> {
-    private final Gson gson;
-    private final Class<T> type;
-
-    public JsonSerializer(Gson gson, Class<T> type) {
-        this.gson = gson;
-        this.type = type;
-    }
-
-    @Override
-    public String serialize(T value) {
-        return gson.toJson(value);
-    }
-
-    @Override
-    public T deserialize(String value) {
-        return gson.fromJson(value, type);
-    }
-}
+CREATE TABLE IF NOT EXISTS updatenotifiers
+(
+    name   TEXT PRIMARY KEY,
+    latest TEXT
+);

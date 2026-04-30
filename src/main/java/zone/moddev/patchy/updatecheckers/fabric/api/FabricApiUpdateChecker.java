@@ -24,85 +24,50 @@
 
 package zone.moddev.patchy.updatecheckers.fabric.api;
 
+import com.unascribed.flexver.FlexVerComparator;
 import net.dv8tion.jda.api.EmbedBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import zone.moddev.patchy.updatecheckers.AbstractUpdateChecker;
 import zone.moddev.patchy.updatecheckers.UpdateCheckerType;
 import zone.moddev.patchy.updatecheckers.fabric.FabricVersionHelper;
-import zone.moddev.patchy.util.Constants;
-import zone.moddev.patchy.util.JsonSerializer;
 
-import java.util.Collections;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
-public final class FabricApiUpdateChecker extends AbstractUpdateChecker<FabricApiVersions> {
+public final class FabricApiUpdateChecker extends AbstractUpdateChecker<FabricApiVersion> {
 
     public FabricApiUpdateChecker() {
-        super(NotifierConfiguration.<FabricApiVersions>builder()
-                .name("fabricapi")
-                .type(UpdateCheckerType.FABRIC)
-                .serializer(new JsonSerializer<>(Constants.GSON, FabricApiVersions.class))
-                .versionComparator(NotifierConfiguration.notEqual())
+        super(FabricApiVersion.class, NotifierConfiguration.<FabricApiVersion>builder(UpdateCheckerType.FABRIC_API)
+                .versionComparator((o1, o2) -> FlexVerComparator.compare(o1.apiPart(), o2.apiPart()))
+                .versionKeyExtractor(FabricApiVersion::apiPart)
                 .webhookInfo(new WebhookInfo("Fabric API Updates", "https://github.com/fabricmc.png"))
                 .build());
     }
 
     @Override
-    protected FabricApiVersions queryLatest() {
-        return new FabricApiVersions(FabricVersionHelper.getFabricApiVersions());
+    protected List<String> getUpdateKeys() throws IOException {
+        return FabricVersionHelper.getFabricApiVersions().keySet().stream().toList();
     }
 
     @Override
-    protected @NotNull List<EmbedBuilder> getEmbeds(@Nullable final FabricApiVersions oldVersion, final @NotNull FabricApiVersions newVersion) {
+    protected Map<String, FabricApiVersion> fetchLatest() throws IOException {
+        return FabricVersionHelper.getFabricApiVersions();
+    }
+
+    @Override
+    protected @NotNull List<EmbedBuilder> getEmbeds(String mcVersion, @Nullable final FabricApiVersion oldVersion, final @NotNull FabricApiVersion newVersion) {
+        // First run, just announce the latest version available.
+        final EmbedBuilder embed = new EmbedBuilder();
+        embed.setTitle("New Fabric API Update Released!");
+        embed.setColor(0xDBD2B5);
+        embed.addField("Minecraft Version", mcVersion, true);
         if (oldVersion == null) {
-            // First run, just announce the latest version available.
-            final Map.Entry<String, String> versionEntry = newVersion.byMcVersion().entrySet().stream()
-                    .max(Map.Entry.comparingByKey())
-                    .orElseThrow();
-
-            final String mcVersion = versionEntry.getKey();
-            final String version = versionEntry.getValue();
-
-            final EmbedBuilder embed = new EmbedBuilder();
-            embed.setTitle("New Fabric API Update Released!");
-            embed.setColor(0xDBD2B5);
-            embed.addField("Minecraft Version", mcVersion, true);
-            embed.addField("Fabric API Version", version, true);
-            return List.of(embed);
+            embed.addField("Fabric API Version", newVersion.fullVersion(), true);
+        } else {
+            embed.addField("Latest Fabric API Version", "**%s** -> **%s**".formatted(oldVersion.fullVersion(), newVersion.fullVersion()), true);
         }
-
-        // Find all entries that have changed.
-        final List<Map.Entry<String, String>> changedEntries = newVersion.byMcVersion().entrySet().stream()
-                .filter(entry -> !Objects.equals(oldVersion.byMcVersion().get(entry.getKey()), entry.getValue()))
-                .sorted(Map.Entry.<String, String>comparingByKey().reversed())
-                .toList();
-
-        if (changedEntries.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        return changedEntries.stream()
-                .map(entry -> {
-                    final String mcVersion = entry.getKey();
-                    final String currentApiVersion = entry.getValue();
-                    final String oldApiVersion = oldVersion.byMcVersion().get(mcVersion);
-
-                    final EmbedBuilder embed = new EmbedBuilder();
-                    embed.setTitle("New Fabric API Update Released!");
-                    embed.setColor(0xDBD2B5);
-                    embed.addField("Minecraft Version", mcVersion, true);
-
-                    if (oldApiVersion == null) {
-                        embed.addField("Fabric API Version", currentApiVersion, true);
-                    } else {
-                        embed.addField("Latest Fabric API Version", "**%s** -> **%s**".formatted(oldApiVersion, currentApiVersion), true);
-                    }
-                    return embed;
-                })
-                .collect(Collectors.toList());
+        return List.of(embed);
     }
 }

@@ -22,9 +22,23 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.updatecheckers.neoforge;
+package zone.moddev.patchy.updatecheckers;
 
-import java.util.Map;
+public enum NotificationChannelType {
+    MINECRAFT("Minecraft"),
+    BLOCKBENCH("BlockBench"),
+    NEOFORGE("NeoForge"),
+    FORGE("Forge"),
+    PARCHMENT("Parchment"),
+    FABRIC("Fabric");
 
-public record NeoForgeVersions(Map<String, String> byMcVersion) {
+    private final String name;
+
+    NotificationChannelType(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
 }

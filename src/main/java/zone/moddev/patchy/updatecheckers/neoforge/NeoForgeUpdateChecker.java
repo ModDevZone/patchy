@@ -24,6 +24,7 @@
 
 package zone.moddev.patchy.updatecheckers.neoforge;
 
+import com.unascribed.flexver.FlexVerComparator;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import org.jetbrains.annotations.NotNull;
@@ -31,114 +32,81 @@ import org.jetbrains.annotations.Nullable;
 import zone.moddev.patchy.updatecheckers.AbstractUpdateChecker;
 import zone.moddev.patchy.updatecheckers.SharedVersionHelpers;
 import zone.moddev.patchy.updatecheckers.UpdateCheckerType;
-import zone.moddev.patchy.util.Constants;
-import zone.moddev.patchy.util.JsonSerializer;
 import zone.moddev.patchy.util.NetworkUtils;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
-public final class NeoForgeUpdateChecker extends AbstractUpdateChecker<NeoForgeVersions> {
+public final class NeoForgeUpdateChecker extends AbstractUpdateChecker<NeoForgeVersion> {
 
-    public static final String CHANGELOG_URL = "https://maven.neoforged.net/releases/net/neoforged/neoforge/%s/neoforge-%s-changelog.txt";
+    public static final String CHANGELOG_URL_TEMPLATE = "https://maven.neoforged.net/releases/net/neoforged/neoforge/%s/neoforge-%s-changelog.txt";
 
     public NeoForgeUpdateChecker() {
-        super(NotifierConfiguration.<NeoForgeVersions>builder()
-                .name("neoforge")
-                .type(UpdateCheckerType.NEOFORGE)
-                .serializer(new JsonSerializer<>(Constants.GSON, NeoForgeVersions.class))
-                .versionComparator(NotifierConfiguration.notEqual())
+        super(NeoForgeVersion.class, NotifierConfiguration.<NeoForgeVersion>builder(UpdateCheckerType.NEOFORGE)
+                .versionComparator((o1, o2) -> FlexVerComparator.compare(o1.id(), o2.id()))
+                .versionKeyExtractor(NeoForgeVersion::id)
                 .webhookInfo(new WebhookInfo("NeoForge Updates", "https://github.com/NeoForged.png"))
                 .build());
     }
 
     @Override
-    protected NeoForgeVersions queryLatest() {
-        return new NeoForgeVersions(NeoForgeVersionHelper.getNeoForgeVersions());
+    protected List<String> getUpdateKeys() throws IOException {
+        return NeoForgeVersionHelper.getNeoForgeVersions().keySet().stream().toList();
+    }
+
+    @Override
+    protected Map<String, NeoForgeVersion> fetchLatest() throws IOException {
+        return NeoForgeVersionHelper.getNeoForgeVersions();
     }
 
     @NotNull
     @Override
-    protected List<EmbedBuilder> getEmbeds(@Nullable final NeoForgeVersions oldVersion, @NotNull final NeoForgeVersions newVersion) {
+    protected List<EmbedBuilder> getEmbeds(String mcVersion, @Nullable final NeoForgeVersion oldVersion, @NotNull final NeoForgeVersion newVersion) throws IOException {
+        var list = new ArrayList<EmbedBuilder>();
+
+        final EmbedBuilder embed = new EmbedBuilder();
+        embed.setTitle("New NeoForge Update Released!");
+        embed.setColor(0xFFFF00);
+        embed.addField("Minecraft Version", mcVersion, true);
+
         if (oldVersion == null) {
-            // First run, just announce the latest version available.
-            final Map.Entry<String, String> versionEntry = newVersion.byMcVersion().entrySet().stream()
-                    .max(Map.Entry.comparingByKey())
-                    .orElseThrow();
-
-            final String mcVersion = versionEntry.getKey();
-            final String version = versionEntry.getValue();
-
-            final EmbedBuilder embed = new EmbedBuilder();
-            embed.setTitle("New NeoForge Update Released!");
-            embed.setColor(0xFFFF00);
-            embed.addField("Minecraft Version", mcVersion, true);
-            embed.addField("NeoForge Version", version, true);
-            addChangelog(embed, null, version);
-            return List.of(embed);
+            embed.addField("NeoForge Version", newVersion.id(), true);
+        } else {
+            embed.addField("Latest NeoForge Version", "**%s** -> **%s**".formatted(oldVersion, newVersion), true);
         }
 
-        // Find all entries that have changed.
-        final List<Map.Entry<String, String>> changedEntries = newVersion.byMcVersion().entrySet().stream()
-                .filter(entry -> !Objects.equals(oldVersion.byMcVersion().get(entry.getKey()), entry.getValue()))
-                .sorted(Map.Entry.<String, String>comparingByKey().reversed())
-                .toList();
+        addChangelog(embed, oldVersion, newVersion);
+        list.add(embed);
 
-        if (changedEntries.isEmpty()) {
-            return Collections.emptyList();
+        var isNoLongerBeta = oldVersion != null && oldVersion.id().endsWith("-beta") && !newVersion.id().endsWith("-beta");
+        if(isNoLongerBeta) {
+            list.add(new EmbedBuilder().setTitle("NeoForge for Minecraft %s is now stable!".formatted(mcVersion)).setColor(0x57F287));
         }
 
-        return changedEntries.stream()
-                .map(entry -> {
-                    final String mcVersion = entry.getKey();
-                    final String currentNeoVersion = entry.getValue();
-                    final String oldNeoVersion = oldVersion.byMcVersion().get(mcVersion);
-
-                    final EmbedBuilder embed = new EmbedBuilder();
-                    embed.setTitle("New NeoForge Update Released!");
-                    embed.setColor(0xFFFF00);
-                    embed.addField("Minecraft Version", mcVersion, true);
-
-                    if (oldNeoVersion == null) {
-                        embed.addField("NeoForge Version", currentNeoVersion, true);
-                    } else {
-                        final boolean isNoLongerBeta = oldNeoVersion.endsWith("-beta") && !currentNeoVersion.endsWith("-beta");
-                        embed.addField(isNoLongerBeta ? "New Stable Release" : "Latest NeoForge Version", "**%s** -> **%s**".formatted(oldNeoVersion, currentNeoVersion), true);
-                    }
-
-                    addChangelog(embed, oldNeoVersion, currentNeoVersion);
-                    return embed;
-                })
-                .collect(Collectors.toList());
+        return list;
     }
 
-    private static void addChangelog(EmbedBuilder embedBuilder, @Nullable String neoStart, String neoEnd) {
-        try {
-            String changelog = getChangelogBetweenVersions(
-                    neoStart, neoEnd
-            );
-            if (changelog == null || changelog.isBlank()) return;
+    private static void addChangelog(EmbedBuilder embedBuilder, @Nullable NeoForgeVersion neoStart, NeoForgeVersion neoEnd) throws IOException {
+        String changelog = getChangelogBetweenVersions(neoStart, neoEnd);
+        if (changelog == null || changelog.isBlank()) return;
 
-            changelog = SharedVersionHelpers.replaceGitHubReferences(changelog, "NeoForged/NeoForge");
+        changelog = SharedVersionHelpers.replaceGitHubReferences(changelog, "NeoForged/NeoForge");
 
-            embedBuilder.setDescription(SharedVersionHelpers.truncate("""
+        embedBuilder.setDescription(SharedVersionHelpers.truncate("""
                     [Changelog](%s):
                     %s
                     """.formatted(
-                    CHANGELOG_URL.formatted(neoEnd, neoEnd), changelog
-            ), MessageEmbed.DESCRIPTION_MAX_LENGTH));
-        } catch (IOException ignored) {
-        }
+                CHANGELOG_URL_TEMPLATE.formatted(neoEnd, neoEnd), changelog
+        ), MessageEmbed.DESCRIPTION_MAX_LENGTH));
     }
 
-    public static String getChangelogBetweenVersions(@Nullable final String neoStart, final String neoEnd) throws IOException {
+    public static String getChangelogBetweenVersions(@Nullable final NeoForgeVersion neoStart, final NeoForgeVersion neoEnd) throws IOException {
+        String content = NetworkUtils.getUrlContent(CHANGELOG_URL_TEMPLATE.formatted(neoEnd, neoEnd));
+        if (content == null) return "";
+
         if (neoStart == null || neoStart.equals(neoEnd)) {
-            String content = NetworkUtils.getUrlContent(CHANGELOG_URL.formatted(neoEnd, neoEnd));
-            if (content == null) return "";
             final String[] split = content.split("\n");
             final StringBuilder changelog = new StringBuilder(split[0])
                     .append('\n');
@@ -149,13 +117,7 @@ public final class NeoForgeUpdateChecker extends AbstractUpdateChecker<NeoForgeV
             return changelog.toString();
         }
 
-        final var startChangelog = NetworkUtils.getUrlContent(CHANGELOG_URL.formatted(neoStart, neoStart));
-        final var endChangelog = NetworkUtils.getUrlContent(CHANGELOG_URL.formatted(neoEnd, neoEnd));
-
-        if (startChangelog == null || endChangelog == null) {
-            return "";
-        }
-
-        return endChangelog.replace(startChangelog, "");
+        var startMarker = " - `%s`".formatted(neoStart);
+        return content.substring(0, content.indexOf(startMarker)).trim();
     }
 }

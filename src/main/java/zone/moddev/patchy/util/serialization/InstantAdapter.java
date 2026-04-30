@@ -22,39 +22,21 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.updatecheckers.minecraft;
+package zone.moddev.patchy.util.serialization;
 
-import org.jetbrains.annotations.Nullable;
-import zone.moddev.patchy.util.Constants;
+import com.google.gson.*;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URI;
-import java.util.List;
+import java.lang.reflect.Type;
+import java.time.Instant;
 
-public final class MinecraftVersionHelper {
-
-    private MinecraftVersionHelper() {
-        // Prevent instantiation
+public class InstantAdapter implements JsonSerializer<Instant>, JsonDeserializer<Instant> {
+    @Override
+    public Instant deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+        return Instant.parse(json.getAsString());
     }
 
-    public static final String API_URL = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
-
-    @Nullable
-    public static PistonMeta getMeta() throws IOException {
-        try (final var reader = new InputStreamReader(URI.create(API_URL).toURL().openStream())) {
-            return Constants.GSON.fromJson(reader, PistonMeta.class);
-        }
-    }
-
-    public static class PistonMeta {
-        public VersionsInfo latest;
-        public List<VersionInfo> versions;
-    }
-
-    public record VersionsInfo(String release, String snapshot) {
-    }
-
-    public record VersionInfo(String id, String type) {
+    @Override
+    public JsonElement serialize(Instant src, Type typeOfSrc, JsonSerializationContext context) {
+        return new JsonPrimitive(src.toString());
     }
 }

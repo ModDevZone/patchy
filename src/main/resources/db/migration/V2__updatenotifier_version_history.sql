@@ -22,39 +22,16 @@
  * SOFTWARE.
  */
 
-package zone.moddev.patchy.updatecheckers.minecraft;
+DROP TABLE IF EXISTS updatenotifiers;
 
-import org.jetbrains.annotations.Nullable;
-import zone.moddev.patchy.util.Constants;
+CREATE TABLE IF NOT EXISTS updatenotifier_versions
+(
+    id      INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    type    TEXT    NOT NULL,
+    key     TEXT    NOT NULL,
+    version TEXT    NOT NULL,
+    raw     TEXT
+);
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URI;
-import java.util.List;
-
-public final class MinecraftVersionHelper {
-
-    private MinecraftVersionHelper() {
-        // Prevent instantiation
-    }
-
-    public static final String API_URL = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
-
-    @Nullable
-    public static PistonMeta getMeta() throws IOException {
-        try (final var reader = new InputStreamReader(URI.create(API_URL).toURL().openStream())) {
-            return Constants.GSON.fromJson(reader, PistonMeta.class);
-        }
-    }
-
-    public static class PistonMeta {
-        public VersionsInfo latest;
-        public List<VersionInfo> versions;
-    }
-
-    public record VersionsInfo(String release, String snapshot) {
-    }
-
-    public record VersionInfo(String id, String type) {
-    }
-}
+CREATE UNIQUE INDEX idx_updatenotifier_versions_type_key_version ON updatenotifier_versions (type, key, version);
+CREATE INDEX idx_updatenotifier_versions_by_type_key ON updatenotifier_versions (type, key);

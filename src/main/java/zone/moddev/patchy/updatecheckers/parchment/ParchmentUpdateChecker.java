@@ -30,33 +30,35 @@ import org.jetbrains.annotations.Nullable;
 import zone.moddev.patchy.updatecheckers.AbstractUpdateChecker;
 import zone.moddev.patchy.updatecheckers.UpdateCheckerType;
 import zone.moddev.patchy.updatecheckers.parchment.ParchmentVersionHelper.ParchmentVersion;
-import zone.moddev.patchy.util.Constants;
-import zone.moddev.patchy.util.JsonSerializer;
 
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 public final class ParchmentUpdateChecker extends AbstractUpdateChecker<ParchmentVersion> {
 
     public ParchmentUpdateChecker() {
-        super(NotifierConfiguration.<ParchmentVersion>builder()
-                .name("parchment")
-                .type(UpdateCheckerType.PARCHMENT)
-                .versionComparator(Comparator.comparing(ParchmentVersion::getDate))
-                .serializer(new JsonSerializer<>(Constants.GSON, ParchmentVersion.class))
+        super(ParchmentVersion.class, NotifierConfiguration.<ParchmentVersion>builder(UpdateCheckerType.PARCHMENT)
+                .versionComparator(Comparator.comparing(ParchmentVersion::timestamp))
+                .versionKeyExtractor(ParchmentVersion::parchmentVersion)
                 .webhookInfo(new WebhookInfo("Parchment Updates", "https://github.com/parchmentmc.png"))
                 .build());
     }
 
-    @Nullable
     @Override
-    protected ParchmentVersion queryLatest() {
-        return ParchmentVersionHelper.newest(ParchmentVersionHelper.byMcReleases());
+    protected List<String> getUpdateKeys() throws IOException {
+        return ParchmentVersionHelper.getVersionKeys();
+    }
+
+    @Override
+    protected Map<String, ParchmentVersion> fetchLatest() throws IOException {
+        return ParchmentVersionHelper.latestByMcRelease();
     }
 
     @NotNull
     @Override
-    protected List<EmbedBuilder> getEmbeds(@Nullable final ParchmentVersion oldVersion, final @NotNull ParchmentVersion newVersion) {
+    protected List<EmbedBuilder> getEmbeds(String key, @Nullable final ParchmentVersion oldVersion, final @NotNull ParchmentVersion newVersion) {
         return List.of(new EmbedBuilder()
                 .setColor(0xFF0000)
                 .setTitle("New %s Parchment Version is Available!".formatted(newVersion.mcVersion()))

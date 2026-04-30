@@ -27,6 +27,7 @@ package zone.moddev.patchy.updatecheckers.neoforge;
 import org.jetbrains.annotations.Nullable;
 import zone.moddev.patchy.updatecheckers.SharedVersionHelpers;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -42,8 +43,8 @@ public final class NeoForgeVersionHelper extends SharedVersionHelpers {
      *
      * @return A map of Minecraft versions to the latest corresponding NeoForge version.
      */
-    public static Map<String, String> getNeoForgeVersions() {
-        return getVersionsByMinecraftVersion(METADATA_URL, NeoForgeVersionHelper::getMinecraftVersionFromNeoForge);
+    public static Map<String, NeoForgeVersion> getNeoForgeVersions() throws IOException {
+        return getVersionsByMinecraftVersion(METADATA_URL, NeoForgeVersion::new, NeoForgeVersionHelper::getMinecraftVersionFromNeoForge);
     }
 
     /**
@@ -61,9 +62,9 @@ public final class NeoForgeVersionHelper extends SharedVersionHelpers {
      * @return The corresponding Minecraft version, or {@code null} if it cannot be determined.
      */
     @Nullable
-    public static String getMinecraftVersionFromNeoForge(String neoForgeVersion) {
+    public static String getMinecraftVersionFromNeoForge(NeoForgeVersion neoForgeVersion) {
         // Strip suffixes like -beta
-        final String versionCore = neoForgeVersion.split("-")[0];
+        final String versionCore = neoForgeVersion.id().split("-")[0];
         final String[] parts = versionCore.split("\\.");
 
         if (parts.length < 2) {

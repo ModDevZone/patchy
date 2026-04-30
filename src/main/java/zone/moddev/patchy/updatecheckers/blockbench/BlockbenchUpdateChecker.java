@@ -31,8 +31,6 @@ import org.jetbrains.annotations.Nullable;
 import zone.moddev.patchy.updatecheckers.AbstractUpdateChecker;
 import zone.moddev.patchy.updatecheckers.SharedVersionHelpers;
 import zone.moddev.patchy.updatecheckers.UpdateCheckerType;
-import zone.moddev.patchy.util.Constants;
-import zone.moddev.patchy.util.JsonSerializer;
 import zone.moddev.patchy.util.NetworkUtils;
 
 import java.io.IOException;
@@ -42,27 +40,25 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class BlockbenchUpdateChecker extends AbstractUpdateChecker<GithubRelease> {
+public class BlockbenchUpdateChecker extends AbstractUpdateChecker.Single<GithubRelease> {
 
     public BlockbenchUpdateChecker() {
-        super(NotifierConfiguration.<GithubRelease>builder()
-                .name("blockbench")
-                .type(UpdateCheckerType.BLOCKBENCH)
+        super(GithubRelease.class, AbstractUpdateChecker.NotifierConfiguration.<GithubRelease>builder(UpdateCheckerType.BLOCKBENCH)
                 .versionComparator(Comparator.comparing(release -> Instant.parse(release.published_at())))
-                .serializer(new JsonSerializer<>(Constants.GSON, GithubRelease.class))
-                .webhookInfo(new WebhookInfo("Blockbench Updates", "https://www.blockbench.net/favicon.png"))
+                .versionKeyExtractor(GithubRelease::tag_name)
+                .webhookInfo(new AbstractUpdateChecker.WebhookInfo("Blockbench Updates", "https://www.blockbench.net/favicon.png"))
                 .build());
     }
 
     @Nullable
     @Override
-    protected GithubRelease queryLatest() throws IOException {
+    protected GithubRelease fetchLatestSingle() throws IOException {
         return BlockbenchVersionHelper.getLatest(loggingMarker);
     }
 
     @NotNull
     @Override
-    protected List<EmbedBuilder> getEmbeds(@Nullable final GithubRelease oldVersion, final @NotNull GithubRelease newVersion) {
+    protected List<EmbedBuilder> getEmbedsSingle(@Nullable final GithubRelease oldVersion, final @NotNull GithubRelease newVersion) {
         final EmbedBuilder embed = new EmbedBuilder()
                 .setTitle("New Blockbench %s: %s".formatted(newVersion.prerelease() ? "pre-release" : "release", newVersion.name()))
                 .setColor(newVersion.prerelease() ? 0x29CFD8 : 0x1E93D9)

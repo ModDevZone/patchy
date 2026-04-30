@@ -46,7 +46,7 @@ public final class MinecraftUpdateChecker extends AbstractUpdateChecker<Minecraf
         super(MinecraftUpdateChecker.MinecraftVersion.class, NotifierConfiguration.<MinecraftUpdateChecker.MinecraftVersion>builder(UpdateCheckerType.MINECRAFT)
                 .versionComparator(NotifierConfiguration.notEqual())
                 .versionKeyExtractor(MinecraftVersion::version)
-                .webhookInfo(new WebhookInfo("Minecraft Updates", "https://www.minecraft.net/etc.clientlibs/minecraftnet/clientlibs/clientlib-site/resources/favicon.ico"))
+                .webhookInfo(new WebhookInfo("Minecraft Updates", "https://media.discordapp.net/attachments/957353544493719632/1005934698767323156/unknown.png?width=594&height=594"))
                 .build());
     }
 

@@ -110,7 +110,7 @@ public final class ForgeUpdateChecker extends AbstractUpdateChecker<ForgeVersion
             String changelog = getChangelogBetweenVersions(forgeStart, forgeEnd);
             if (changelog == null || changelog.isBlank()) return;
 
-            changelog = SharedVersionHelpers.replaceGitHubReferences(changelog, "MinecraftForge/Forge");
+            changelog = SharedVersionHelpers.replaceGitHubReferences(changelog, "MinecraftForge/MinecraftForge");
 
             embedBuilder.setDescription(SharedVersionHelpers.truncate("""
                     [Changelog](%s):

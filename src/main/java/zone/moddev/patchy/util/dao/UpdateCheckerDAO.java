@@ -15,7 +15,7 @@ public interface UpdateCheckerDAO {
     void addNewVersion(@Bind("type") UpdateCheckerType type, @Bind("key") String key, @Bind("version") String versionId, @Bind("raw") String raw);
 
     @Nullable
-    @SqlQuery("SELECT json(raw) FROM updatenotifier_versions WHERE type = :type AND key = :key ORDER BY id LIMIT 1")
+    @SqlQuery("SELECT json(raw) FROM updatenotifier_versions WHERE type = :type AND key = :key ORDER BY id DESC LIMIT 1")
     String getLatest(@Bind("type") UpdateCheckerType type, @Bind("key") String key);
 
     @SqlBatch("INSERT INTO updatenotifier_versions (type, key, version, raw) VALUES (:type, :key, :version, jsonb(:raw)) ON CONFLICT DO NOTHING")

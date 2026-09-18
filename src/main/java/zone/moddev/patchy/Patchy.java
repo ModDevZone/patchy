@@ -29,12 +29,14 @@ import zone.moddev.patchy.updatecheckers.minecraft.MinecraftUpdateChecker;
 import zone.moddev.patchy.updatecheckers.neoforge.NeoForgeUpdateChecker;
 import zone.moddev.patchy.updatecheckers.parchment.ParchmentUpdateChecker;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class Patchy {
@@ -52,6 +54,7 @@ public class Patchy {
     }};
     private final Jdbi jdbi = Jdbi.create(ds);
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private final AtomicBoolean isShuttingDown = new AtomicBoolean(false);
 
     private static final Set<GatewayIntent> INTENTS = EnumSet.of(
             GatewayIntent.GUILD_WEBHOOKS,
@@ -89,6 +92,7 @@ public class Patchy {
                 VERSION == null ? "DEVELOPMENT_BUILD" : VERSION, WEBSITE_URL, GITHUB_REPO);
 
         initDb();
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown, "Patchy-Shutdown-Hook"));
 
         try {
             JDABuilder builder = JDABuilder.createDefault(configManager.getPatchyConfig().getDiscordToken(), INTENTS);
@@ -157,12 +161,30 @@ public class Patchy {
     }
 
     public void shutdown() {
+        if (!isShuttingDown.compareAndSet(false, true)) {
+            return;
+        }
+
         LOGGER.info("Shutting down...");
-        scheduler.shutdownNow();
-        jda.shutdown();
-        ds.close();
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            scheduler.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+
+        if (jda != null) {
+            jda.shutdown();
+        }
+
+        if (!ds.isClosed()) {
+            ds.close();
+        }
+
         LOGGER.info("Goodbye!");
-        System.exit(0);
     }
 
     public static JDA getJDA() {

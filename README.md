@@ -13,7 +13,7 @@ A basic announcement bot for posting updates about modding libraries, tools, and
 
 To add the official public instance of Patchy to your Discord server, **[use this invite link](https://discord.com/oauth2/authorize?client_id=1290086547017957406&permissions=536947712&scope=bot+applications.commands)**.
 
-You must have the **Manage Server** permission to add the bot.
+You must have the **Manage Server** permission to add the bot. (You can also self-host this bot, see #self-hosting below)
 
 ## Setup and Configuration
 
@@ -47,14 +47,14 @@ Tell the bot where to send update notifications.
 
 ## Commands
 
-| Command           | Subcommand | Description                                     | Permissions Required        |
-| ----------------- | ---------- |-------------------------------------------------| --------------------------- |
-| `/version`        |            | Shows the bot's current version and info.       | Everyone                    |
-| `/shutdown`       |            | Shuts down the bot safely.                      | Bot Owner Only              |
+| Command           | Subcommand | Description                                     | Permissions Required               |
+| ----------------- | ---------- |-------------------------------------------------| ---------------------------        |
+| `/version`        |            | Shows the bot's current version and info.       | Everyone                           |
+| `/shutdown`       |            | Shuts down the bot safely.                      | Bot Owner Only (KiriCattus)        |
 | `/patchy-config`  | `set`      | Sets a notification channel for an update type. | `Manage Server` or Controller Role |
 |                   | `unset`    | Disables notifications for an update type.      | `Manage Server` or Controller Role |
 |                   | `view`     | Views the current notification settings.        | `Manage Server` or Controller Role |
-|                   | `set-role` | Sets the role that can manage the bot.          | `Manage Server`             |
+|                   | `set-role` | Sets the role that can manage the bot.          | `Manage Server`                    |
 
 ## Self-Hosting
 

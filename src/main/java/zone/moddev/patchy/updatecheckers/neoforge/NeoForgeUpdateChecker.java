@@ -21,7 +21,7 @@ public final class NeoForgeUpdateChecker extends AbstractUpdateChecker<NeoForgeV
 
     public NeoForgeUpdateChecker() {
         super(NeoForgeVersion.class, NotifierConfiguration.<NeoForgeVersion>builder(UpdateCheckerType.NEOFORGE)
-                .versionComparator((o1, o2) -> FlexVerComparator.compare(o1.id(), o2.id()))
+                .versionComparator((oldVersion, newVersion) -> FlexVerComparator.compare(oldVersion.id(), newVersion.id()))
                 .versionKeyExtractor(NeoForgeVersion::id)
                 .webhookInfo(new WebhookInfo("NeoForge Updates", "https://github.com/NeoForged.png"))
                 .build());

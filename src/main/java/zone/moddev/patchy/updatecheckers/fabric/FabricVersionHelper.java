@@ -29,7 +29,12 @@ public final class FabricVersionHelper extends SharedVersionHelpers {
      * @return A map of Minecraft versions to the latest corresponding Fabric API version.
      */
     public static Map<String, FabricApiVersion> getFabricApiVersions() throws IOException {
-        return getVersionsByMinecraftVersion(MAVEN_URL + FABRIC_API_URL, FabricApiVersion::fromString, FabricApiVersion::mcPart);
+        return getVersionsByMinecraftVersion(
+                MAVEN_URL + FABRIC_API_URL,
+                FabricApiVersion::fromString,
+                FabricApiVersion::mcPart,
+                (oldVersion, newVersion) -> FlexVerComparator.compare(oldVersion.apiPart(), newVersion.apiPart())
+        );
     }
 
     public static List<FabricLoaderVersion> getLoaderVersions() {

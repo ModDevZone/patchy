@@ -1,5 +1,6 @@
 package zone.moddev.patchy.updatecheckers.neoforge;
 
+import com.unascribed.flexver.FlexVerComparator;
 import org.jetbrains.annotations.Nullable;
 import zone.moddev.patchy.updatecheckers.SharedVersionHelpers;
 
@@ -20,7 +21,12 @@ public final class NeoForgeVersionHelper extends SharedVersionHelpers {
      * @return A map of Minecraft versions to the latest corresponding NeoForge version.
      */
     public static Map<String, NeoForgeVersion> getNeoForgeVersions() throws IOException {
-        return getVersionsByMinecraftVersion(METADATA_URL, NeoForgeVersion::new, NeoForgeVersionHelper::getMinecraftVersionFromNeoForge);
+        return getVersionsByMinecraftVersion(
+                METADATA_URL,
+                NeoForgeVersion::new,
+                NeoForgeVersionHelper::getMinecraftVersionFromNeoForge,
+                (oldVersion, newVersion) -> FlexVerComparator.compare(oldVersion.id(), newVersion.id())
+        );
     }
 
     /**

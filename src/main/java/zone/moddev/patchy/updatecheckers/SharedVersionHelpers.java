@@ -85,13 +85,21 @@ public class SharedVersionHelpers {
     }
 
     /**
-     * Gets a map of the latest version for each Minecraft version from a maven-metadata.xml file.
+     * Gets a map of the latest version for each Minecraft version from a maven-metadata.xml file,
+     * using the supplied version comparator to determine the latest version for each key.
      *
      * @param url                The URL of the maven-metadata.xml file.
-     * @param mcVersionExtractor A function that extracts the Minecraft version from a version string.
+     * @param deserializer       A function that converts each raw version string into type T.
+     * @param mcVersionExtractor A function that extracts the Minecraft version from a version object.
+     * @param versionComparator  A comparator to select the latest version when multiple versions share the same Minecraft version.
      * @return A map of Minecraft versions to the latest corresponding version.
      */
-    public static <T> Map<String, T> getVersionsByMinecraftVersion(String url, Function<String, @Nullable T> deserializer, Function<@NotNull T, @Nullable String> mcVersionExtractor) throws IOException {
+    public static <T> Map<String, T> getVersionsByMinecraftVersion(
+            String url,
+            Function<String, @Nullable T> deserializer,
+            Function<@NotNull T, @Nullable String> mcVersionExtractor,
+            Comparator<T> versionComparator
+    ) throws IOException {
         final String[] versions = getVersionsFromMavenMetadata(url);
         if (versions == null) {
             return Collections.emptyMap();
@@ -104,7 +112,37 @@ public class SharedVersionHelpers {
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue,
-                        (a, b) -> b, // Keep the last one found for a given MC version
+                        (existingVersion, newVersion) -> versionComparator.compare(existingVersion, newVersion) >= 0 ? existingVersion : newVersion,
+                        LinkedHashMap::new // Preserve insertion order
+                ));
+    }
+
+    /**
+     * Gets a map of the latest version for each Minecraft version from a maven-metadata.xml file.
+     *
+     * @param url                The URL of the maven-metadata.xml file.
+     * @param deserializer       A function that converts each raw version string into type T.
+     * @param mcVersionExtractor A function that extracts the Minecraft version from a version string.
+     * @return A map of Minecraft versions to the latest corresponding version.
+     */
+    public static <T> Map<String, T> getVersionsByMinecraftVersion(
+            String url,
+            Function<String, @Nullable T> deserializer,
+            Function<@NotNull T, @Nullable String> mcVersionExtractor
+    ) throws IOException {
+        final String[] versions = getVersionsFromMavenMetadata(url);
+        if (versions == null) {
+            return Collections.emptyMap();
+        }
+        return Arrays.stream(versions)
+                .map(deserializer)
+                .filter(Objects::nonNull)
+                .map(v -> new AbstractMap.SimpleImmutableEntry<>(mcVersionExtractor.apply(v), v))
+                .filter(e -> e.getKey() != null)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (existingVersion, newVersion) -> newVersion, // Keep the last one found for a given MC version
                         LinkedHashMap::new // Preserve insertion order
                 ));
     }

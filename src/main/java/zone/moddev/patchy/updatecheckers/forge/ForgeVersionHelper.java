@@ -1,5 +1,6 @@
 package zone.moddev.patchy.updatecheckers.forge;
 
+import com.unascribed.flexver.FlexVerComparator;
 import zone.moddev.patchy.updatecheckers.SharedVersionHelpers;
 
 import java.io.IOException;
@@ -19,7 +20,12 @@ public final class ForgeVersionHelper extends SharedVersionHelpers {
      * @return A map of Minecraft versions to the latest corresponding Forge version.
      */
     public static Map<String, ForgeVersion> getForgeVersions() throws IOException {
-        return getVersionsByMinecraftVersion(METADATA_URL, ForgeVersion::new, ForgeVersionHelper::getMinecraftVersionFromForge);
+        return getVersionsByMinecraftVersion(
+                METADATA_URL,
+                ForgeVersion::new,
+                ForgeVersionHelper::getMinecraftVersionFromForge,
+                (oldVersion, newVersion) -> FlexVerComparator.compare(oldVersion.id(), newVersion.id())
+        );
     }
 
     /**

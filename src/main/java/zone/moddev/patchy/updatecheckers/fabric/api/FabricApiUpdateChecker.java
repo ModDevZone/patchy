@@ -16,7 +16,7 @@ public final class FabricApiUpdateChecker extends AbstractUpdateChecker<FabricAp
 
     public FabricApiUpdateChecker() {
         super(FabricApiVersion.class, NotifierConfiguration.<FabricApiVersion>builder(UpdateCheckerType.FABRIC_API)
-                .versionComparator((o1, o2) -> FlexVerComparator.compare(o1.apiPart(), o2.apiPart()))
+                .versionComparator((oldVersion, newVersion) -> FlexVerComparator.compare(oldVersion.apiPart(), newVersion.apiPart()))
                 .versionKeyExtractor(FabricApiVersion::apiPart)
                 .webhookInfo(new WebhookInfo("Fabric API Updates", "https://github.com/fabricmc.png"))
                 .build());

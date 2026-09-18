@@ -11,7 +11,9 @@ import zone.moddev.patchy.updatecheckers.UpdateCheckerType;
 import zone.moddev.patchy.util.NetworkUtils;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public final class ForgeUpdateChecker extends AbstractUpdateChecker<ForgeVersion> {
 
@@ -19,7 +21,7 @@ public final class ForgeUpdateChecker extends AbstractUpdateChecker<ForgeVersion
 
     public ForgeUpdateChecker() {
         super(ForgeVersion.class, NotifierConfiguration.<ForgeVersion>builder(UpdateCheckerType.FORGE)
-                .versionComparator((o1, o2) -> FlexVerComparator.compare(o1.id(), o2.id()))
+                .versionComparator((oldVersion, newVersion) -> FlexVerComparator.compare(oldVersion.id(), newVersion.id()))
                 .versionKeyExtractor(ForgeVersion::id)
                 .webhookInfo(new WebhookInfo("Forge Updates", "https://media.discordapp.net/attachments/957353544493719632/1006125547430096966/unknown.png"))
                 .build());

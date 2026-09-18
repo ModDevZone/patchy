@@ -18,7 +18,7 @@ public final class FabricLoaderUpdateChecker extends AbstractUpdateChecker.Singl
 
     public FabricLoaderUpdateChecker() {
         super(FabricLoaderVersion.class, NotifierConfiguration.<FabricLoaderVersion>builder(UpdateCheckerType.FABRIC_LOADER)
-                .versionComparator((o1, o2) -> FlexVerComparator.compare(o1.version(), o2.version()))
+                .versionComparator((oldVersion, newVersion) -> FlexVerComparator.compare(oldVersion.version(), newVersion.version()))
                 .versionKeyExtractor(FabricLoaderVersion::version)
                 .webhookInfo(new WebhookInfo("Fabric Loader Updates", "https://github.com/fabricmc.png"))
                 .build());
